@@ -1,64 +1,59 @@
-# <p align="center"> DISA STIG Scripts </p>
+<div align="center">
 
-  These scripts are designed to check and address STIG requirements. However, please note that not all STIG requirements can be resolved via command line; some require configuration profiles that need to be deployed through an MDM. These profiles are available at https://public.cyber.mil/stigs/, but I have not included them here. For any recommendations or issues, please feel free to reach out.
-<br />
-<br />
-  Each script contains variables that need to be adjusted to generate logs locally on your machine, so please configure these settings as needed.
-<br />
-<br />
-Additionally, I have included a script for importing DoD certificates, which will facilitate the process of adding the required certificates into the system keychain.
-<br />
-### <p align="center"> <ins> Executing Scripts</ins> </p>
+# 🍏 🇺🇸 Government Scripts for macOS  🇺🇸 🍏
 
-```
-sudo bash "PATH/MacOS 14 Sonoma V2R1 STIG CHECKER.sh"
-```
-<br />
-* <strong>Note:</strong> The file path will depend on where you downloaded the file. For example, if it was saved to the Downloads folder in your home directory, the command would look like this:
+</div>
+A collection of scripts designed to enhance efficiency and security for macOS systems in government environments. Automate tasks, enforce security policies, and streamline management. For installation and usage details, check the [docs](https://github.com/cocopuff2u/MacOS_GOV_Scripts). Contributions and feedback are welcome!
 
-```
-sudo bash "~/downloads/MacOS 14 Sonoma V2R1 STIG CHECKER.sh"
-``` 
+## Scripts and Automation Tools
 
-## <p align="center"> [Sonoma STIG Checker](https://github.com/cocopuff2u/Mac-Scripts/blob/130024b9664872bddc16938225adc5fd6af0d194/DISA%20STIG%20Scripts/MacOS%2014%20Sonoma%20V2R1%20STIG%20CHECKER.sh) </p> 
-<p align="center"> This script assesses the machine's current configuration against the specified DISA STIGs and produces comprehensive logs for the administrator. By default, logs are saved in the /var/log/ or ~/log directory, but you can customize the location within the script. The script now supports output in plist, CSV, and log formats.</p>
-<br />
+- **[Sonoma STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/8aca926e971d909c9d7ab5894b503aa09e8742c2/MacOS%20Sonoma%20STIG%20Tools)**: Automate the process of checking STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
+  <br>
+  ![Sonoma STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_check_terminal_log.png)
+  <br>
 
-<p align="center"> Terminal Log Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/130024b9664872bddc16938225adc5fd6af0d194/DISA%20STIG%20Scripts/images/check_terminal_log.png">
-</p>
+- **[Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/8aca926e971d909c9d7ab5894b503aa09e8742c2/MacOS%20Sonoma%20STIG%20Tools)**: Automatically applies necessary fixes to meet STIG requirements for macOS Sonoma by adjusting system settings and configurations.
+  <br>
+  ![Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_terminal_fixer_log.png)
+  <br>
 
-<p align="center"> Plist Log Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/9751e2cbc619b14727ffd0c5537efdd87d01bbb8/DISA%20STIG%20Scripts/images/Example_plist_output.png">
-</p>
+- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
+  <br>
+  <br>
 
-<p align="center"> CSV Log Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/9751e2cbc619b14727ffd0c5537efdd87d01bbb8/DISA%20STIG%20Scripts/images/Example_csv_output.png">
-</p>
+## Resources
 
-<p align="center"> Command Log Output</p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/130024b9664872bddc16938225adc5fd6af0d194/DISA%20STIG%20Scripts/images/Example_Command_output_log.png">
-</p>
+### Useful Links for Mac Admins and Government Compliance
 
-<p align="center"> Failed/Passed Log Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/130024b9664872bddc16938225adc5fd6af0d194/DISA%20STIG%20Scripts/images/Example_Passed_STIG_log.png">
-</p>
+- **[Installomator](https://github.com/Installomator/Installomator)**: Automate software installations.
+- **[Nudge](https://github.com/macadmins/nudge)**: Remind users to update macOS.
+- **[Super](https://github.com/Macjutsu/super)**: Manage macOS updates and configurations.
+- **[swiftDialog](https://github.com/swiftDialog/swiftDialog)**: Create custom dialogs for macOS.
+- **[MacAdmins Software](https://macadmins.software/)**: Tools and resources for Mac admins.
+- **[SOFA](https://sofa.macadmins.io/)**: Community tools and scripts for Mac admins.
+- **[Setup Your Mac](https://github.com/setup-your-mac/Setup-Your-Mac)**: Scripted setup for new macOS installations.
+- **[MacAdmins Slack](https://macadmins.slack.com/)**: Connect with the Mac admins community.
 
-## <p align="center"> [Sonoma STIG Fixer](https://github.com/cocopuff2u/Mac-Scripts/blob/1c495c72ff1970292f19b3427a9d5323cfff658e/DISA%20STIG%20Scripts/MacOS%2014%20Sonoma%20V2R1%20STIG%20FIXER.sh) </p> 
-<p align="center">The script assesses the machine's current settings against the required DISA STIGs and applies fixes as needed. It will only execute a fix if a failure is detected. Please note that not all STIG requirements can be resolved through command line alone; some may necessitate MDM configuration profiles</p>
-<br />
+### Useful Links Related to Government and Security Best Practices
 
-<p align="center"> Terminal Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/19c94b71ecbfbbd43fe66bdcbfd4aad0b257702c/DISA%20STIG%20Scripts/images/Example_terminal_fixer_log.png">
-</p>
+- **[U.S. Cybersecurity and Infrastructure Security Agency (CISA)](https://www.cisa.gov)**: National cybersecurity guidance.
+- **[National Institute of Standards and Technology (NIST) Cybersecurity Framework](https://www.nist.gov/cyberframework)**: Framework for improving cybersecurity practices.
+- **[Department of Homeland Security (DHS) Cybersecurity](https://www.dhs.gov/cybersecurity)**: DHS cybersecurity resources.
+- **[NIST macOS Security Guidance](https://github.com/usnistgov/macos_security)**: Security guidelines for macOS by NIST.
+- **[Apple Security Compliance Project](https://support.apple.com/guide/certifications/macos-security-compliance-project-apc322685bb2/web)**: Apple’s security compliance guide for macOS.
+- **[Jamf Establishing Compliance Baselines](https://trusted.jamf.com/docs/establishing-compliance-baselines)**: Compliance baseline documentation for macOS.
+- **[Public Cybersecurity STIGs](https://public.cyber.mil/stigs/)**: Security Technical Implementation Guides (STIGs) for various systems, including macOS.
 
-<p align="center"> Fixer Command Log Output </p>
-<p align="center">
-<img src="https://github.com/cocopuff2u/Mac-Scripts/blob/c8cb3bbcebf59154d79bc9836d8b991324fd2f6e/DISA%20STIG%20Scripts/images/Example_Fixer_Command_output_log.png">
-</p>
+## Contact and Feedback
+
+We value your input and encourage you to share your feedback or recommendations! If you want something, say something—your suggestions are crucial for improvement.
+
+- **Report Issues**: Submit an issue on our [GitHub Issues page](https://github.com/cocopuff2u/MacOS_GOV_Scripts/issues) for bug reports or feature requests.
+- **Join the Discussion**: Connect with me, cocopuff2u, on the [Mac Admins Slack Channel](https://join.slack.com/t/macadmins/shared_invite/zt-2o5811yhx-q5MNLrFG1VoHRusXLgZwsw) to discuss and collaborate.
+- **Email**: Reach out directly at [cocopuff2u@yahoo.com](mailto:cocopuff2u@yahoo.com) for any inquiries.
+- **Share Feedback**: We welcome your suggestions and comments to help us improve. Your feedback is crucial, so please feel free to share your thoughts!
+- **Fork and Fix**: Want to contribute directly? Fork the repository, make your changes, and submit a pull request to help enhance the code.
+
+## License
+
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT). See the [LICENSE](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/LICENSE) file for details.
