@@ -5,7 +5,7 @@
 # # Import DoD Certs
 #
 # Purpose: Import the latest DoD Certs from dod.cyber.mil
-# 
+#
 # https://github.com/cocopuff2u
 #
 ####################################################################################################
@@ -16,7 +16,7 @@
 #
 # Issues: If Smart Card is present it will not accept the pin when granting trust per self-signed cert
 # Solution: Ask the user to remove smart card doing those steps, logic put in place if smart card is not
-# present to keep running the script. 
+# present to keep running the script.
 #
 # Issue Update 4/10/24: Noticed with Sonoma 14.4.1 the keychain will accept your pin on trust import, did not change the
 # to reflect the changes until i can confirm its working moving forward.
@@ -155,4 +155,4 @@ rm -rf "$FULL_FOLDER_PATH"
 
 echo "Certificate import and trust addition completed."
 echo "Script execution completed."
-  
+
