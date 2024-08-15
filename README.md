@@ -3,7 +3,8 @@
 # 🍏 🇺🇸 Government Scripts for macOS  🇺🇸 🍏
 
 </div>
-A collection of scripts designed to enhance efficiency and security for macOS systems in government environments. Automate tasks, enforce security policies, and streamline management. For installation and usage details, check the [docs](https://github.com/cocopuff2u/MacOS_GOV_Scripts). Contributions and feedback are welcome!
+
+A collection of scripts designed to enhance efficiency and security for macOS systems in government environments. Automate tasks, enforce security policies, and streamline management. For installation and usage details, Please refer to the [Wiki](https://github.com/cocopuff2u/MacOS_GOV_Scripts/wiki) or check the script folder for more details. Contributions and feedback are welcome!
 
 ## Scripts and Automation Tools
 
