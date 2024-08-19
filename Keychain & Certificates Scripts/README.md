@@ -44,9 +44,9 @@ sudo bash "~/downloads/Keychain Certificate Dumper.sh"
 
 ## Scripts and Automation Tools
 
-- **[Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Keychain%20Certificate%20Dumper.sh)**: Automates the process of checking STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
 
-  ![Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
+  ![Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
 
 - **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
 
