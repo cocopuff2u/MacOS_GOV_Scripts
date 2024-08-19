@@ -17,6 +17,7 @@
 #  1.0 8/05/24 - Original (Learned from https://github.com/usnistgov/macos_security?tab=readme-ov-file)
 #  1.1 8/09/24 - Adjusted logging in terminal and file
 #  2.0 8/14/24 - Added multiple logging outputs and fixed some code
+#  2.1 8/19/24 - Added fix for V-259431
 #
 ####################################################################################################
 # Script Supported STIG Version
@@ -964,6 +965,35 @@ complete_ssh_sshd_fix() {
         /bin/mv "$file" "${include_dir}20-${filename}"
     done
 }
+
+complete_login_banner_fix() {
+    # Hard-coded file path
+    local file_path="/Library/Security/PolicyBanner.rtf"
+
+    # Define the text to be written to the file
+    local text="You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.
+
+By using this IS (which includes any device attached to this IS), you consent to the following conditions:
+
+-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+
+-At any time, the USG may inspect and seize data stored on this IS.
+
+-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
+
+-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.
+
+-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details."
+
+    # Write the text to the specified file
+    echo "$text" | sudo tee "$file_path" > /dev/null
+
+    # Set read permissions for everyone
+    chmod o+r "$file_path"
+
+    # Update the APFS preboot volume and suppress the output
+    diskutil apfs updatePreboot / > /dev/null 2>&1
+}
 ####################################################################################################
 #
 # STIG VUL's Checks Below
@@ -1173,18 +1203,15 @@ requires_mdm="false"
 
 execute_and_log "$check_name" "$command" "$expected_result" "$simple_name" "$fix_command" "$requires_mdm"
 
-
 ##############################################
 check_name="V-259431"
 simple_name="Display_DoD_Notice_and_Consent_Banner_At_Login_Window"
 command="/bin/ls -ld /Library/Security/PolicyBanner.rtf* | /usr/bin/wc -l | /usr/bin/tr -d ' '"
 expected_result="1"
-fix_command="com.apple.timed"
-requires_mdm="true"
+fix_command="complete_login_banner_fix"
+requires_mdm="false"
 
-# Comments Looks if file exists, user needs to verify it contains what it needs
-
-# execute_and_log "$check_name" "$command" "$expected_result" "$simple_name" "$fix_command" "$requires_mdm"
+execute_and_log "$check_name" "$command" "$expected_result" "$simple_name" "$fix_command" "$requires_mdm"
 
 ##############################################
 check_name="V-259432"
