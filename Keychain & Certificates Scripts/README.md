@@ -44,10 +44,10 @@ sudo bash "~/downloads/Keychain Certificate Dumper.sh"
 
 ## Scripts and Automation Tools
 
-- **[Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/8aca926e971d909c9d7ab5894b503aa09e8742c2/MacOS%20Sonoma%20STIG%20Tools)**: Automates the process of checking STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
+- **[Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Keychain%20Certificate%20Dumper.sh)**: Automates the process of checking STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
 
-  ![Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_check_terminal_log.png)
+  ![Key Chain Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
 
-- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
+- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
 
-  ![Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_check_terminal_log.png)
+  ![Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Import_DoD.png)
