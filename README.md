@@ -18,8 +18,14 @@ A collection of scripts designed to enhance efficiency and security for macOS sy
   ![Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_terminal_fixer_log.png)
   <br>
 
-- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
+- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts)**: Automates the import of DoD certificates into the macOS system keychain, ensuring secure and compliant certificate management.
   <br>
+  ![Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts/images/Example_Import_DoD.png)
+  <br>
+
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+  <br>
+  ![Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
   <br>
 
 ## Resources
@@ -30,6 +36,7 @@ A collection of scripts designed to enhance efficiency and security for macOS sy
 - **[Nudge](https://github.com/macadmins/nudge)**: Remind users to update macOS.
 - **[Super](https://github.com/Macjutsu/super)**: Manage macOS updates and configurations.
 - **[swiftDialog](https://github.com/swiftDialog/swiftDialog)**: Create custom dialogs for macOS.
+- **[Mist-CLI](https://github.com/ninxsoft/mist-cli)**: A Mac command-line tool that automatically downloads macOS Firmwares / Installers.
 - **[MacAdmins Software](https://macadmins.software/)**: Tools and resources for Mac admins.
 - **[SOFA](https://sofa.macadmins.io/)**: Community tools and scripts for Mac admins.
 - **[Setup Your Mac](https://github.com/setup-your-mac/Setup-Your-Mac)**: Scripted setup for new macOS installations.
