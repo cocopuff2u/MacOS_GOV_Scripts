@@ -6,8 +6,8 @@ These scripts are designed to check and address MacOS Sonoma STIG requirements. 
 
 ## Additional Tools That Complement These Scripts
 
-- **[Import DoD Certs](https://github.com/cocopuff2u/PLACEHOLDER)**: Automates the import of DoD Certs.
-- **[Keychain Cert Dumper](https://github.com/cocopuff2u/PLACEHOLDER)**: Dumps all keychain certificates.
+- **[Import DoD Certs](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/07d5845b9fe711e4971d1acdd381f6dc92aa0965/Keychain%20%26%20Certificates%20Scripts)**: Automates the import of DoD Certs.
+- **[Keychain Cert Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/07d5845b9fe711e4971d1acdd381f6dc92aa0965/Keychain%20%26%20Certificates%20Scripts)**: Dumps all keychain certificates.
 
 ---
 
