@@ -71,7 +71,7 @@ sudo bash "~/downloads/MacOS 15 Sequoia Beta STIG CHECKER.sh"
 
 ---
 
-## [MacOS 15 Sequoia STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/a2c0f162172935a523bbb7736e575634c8e41667/MacOS%20Sonoma%20STIG%20Tools/MacOS%2014%20Sonoma%20V2R1%20STIG%20CHECKER.sh)
+## [MacOS 15 Sequoia STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/27a471c63ecd604c1fb4a5f34a1daacfebfa6781/MacOS%20Sequoia%20STIG%20Tools/MacOS%2015%20Sequoia%20Beta%20STIG%20CHECKER.sh)
 
 This script evaluates your machine's configuration against the specified DISA STIGs and generates detailed logs for the administrator. By default, logs are saved in the `/var/log/` or `~/log` directory, but you can customize the storage location within the script. The script supports output in plist, CSV, and log formats. Below are examples of various outputs and their appearance:
 
@@ -109,7 +109,7 @@ This script evaluates your machine's configuration against the specified DISA ST
 
 ---
 
-## [MacOS 15 Sequoia STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/a2c0f162172935a523bbb7736e575634c8e41667/MacOS%20Sonoma%20STIG%20Tools/MacOS%2014%20Sonoma%20V2R1%20STIG%20FIXER.sh)
+## [MacOS 15 Sequoia STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/27a471c63ecd604c1fb4a5f34a1daacfebfa6781/MacOS%20Sequoia%20STIG%20Tools/MacOS%2015%20Sequoia%20Beta%20STIG%20FIXER.sh)
 
 This script evaluates your machine's current settings against the required DISA STIGs and applies necessary fixes when failures are detected. It performs fixes only if a problem is identified. Some STIG requirements may require MDM configuration profiles. Below are examples of various outputs and their appearance:
 
