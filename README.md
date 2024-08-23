@@ -36,6 +36,7 @@ A collection of scripts designed to enhance efficiency and security for macOS sy
 - **[Nudge](https://github.com/macadmins/nudge)**: Remind users to update macOS.
 - **[Super](https://github.com/Macjutsu/super)**: Manage macOS updates and configurations.
 - **[swiftDialog](https://github.com/swiftDialog/swiftDialog)**: Create custom dialogs for macOS.
+- **[IBM Notifier](https://github.com/IBM/mac-ibm-notifications)**: Create custom dialogs for macOS.
 - **[Mist-CLI](https://github.com/ninxsoft/mist-cli)**: A Mac command-line tool that automatically downloads macOS Firmwares / Installers.
 - **[MacAdmins Software](https://macadmins.software/)**: Tools and resources for Mac admins.
 - **[SOFA](https://sofa.macadmins.io/)**: Community tools and scripts for Mac admins.
