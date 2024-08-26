@@ -18,6 +18,7 @@
 #  1.1 8/09/24 - Adjusted logging in terminal and file
 #  2.0 8/14/24 - Added multiple logging outputs and fixed some code
 #  2.1 8/19/24 - Added fix for V-259431
+#  2.2 8/26/24 - Fixed check for V-259427 the \ was causing the check to fail
 #
 ####################################################################################################
 # Script Supported STIG Version
@@ -1154,7 +1155,7 @@ execute_and_log "$check_name" "$command" "$expected_result" "$simple_name" "$fix
 ##############################################
 check_name="V-259427"
 simple_name="Must_Be_Intergrated_Into_A_Directory_Services_Infrastructure"
-command="/usr/bin/dscl localhost -list . \| /usr/bin/grep -qvE '(Contact\|Search\|Local\|^$)'; /bin/echo \$?"
+command="/usr/bin/dscl localhost -list . \| /usr/bin/grep -qvE '(Contact|Search|Local|^$)'; /bin/echo \$?"
 expected_result="0"
 fix_command=""
 requires_mdm="false"
