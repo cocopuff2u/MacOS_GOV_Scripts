@@ -516,18 +516,18 @@ initialize_logging() {
     if [ "$LOG_TO_CSV" = true ]; then
         if [ ! -f "$CSV_LOG_FILE" ]; then
             # File does not exist; write the header
-            echo "$HEADER" >"$CSV_LOG_FILE"
+            echo "$csv_header" >"$CSV_LOG_FILE"
 
             if [ "$LOG_RESULTS_TO_USER_LOG_FOLDER" = true ]; then
-                echo "$HEADER" >"$USER_CSV_LOG_FILE"
+                echo "$csv_header" >"$USER_CSV_LOG_FILE"
             fi
 
-        elif ! grep -q "^$HEADER$" "$CSV_LOG_FILE"; then
+        elif ! grep -q "^$csv_header$" "$CSV_LOG_FILE"; then
             # File exists but does not contain the header; add the header
-            echo "$HEADER" >>"$CSV_LOG_FILE"
+            echo "$csv_header" >>"$CSV_LOG_FILE"
 
             if [ "$LOG_RESULTS_TO_USER_LOG_FOLDER" = true ]; then
-                echo "$HEADER" >>"$USER_CSV_LOG_FILE"
+                echo "$csv_header" >>"$USER_CSV_LOG_FILE"
             fi
         fi
     fi
