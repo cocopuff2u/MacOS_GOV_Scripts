@@ -29,6 +29,8 @@
 #                Moved variable's around to better group what is being declared
 #                Moved checking for CSV Header from write_to_csv to initialize_logging
 #  2.2 8/15/24 - Removed main function as it caused errors within the commands
+#  2.3 8/26/24 - Corrected initialize_logging to write CSV header correctly
+#                Fixed check for V-259427 the \ was causing the check to fail
 ####################################################################################################
 # Script Supported STIG Version
 STIG_VERSION="MACOS 14 (SONOMA) V2R1" # [ Do Not Adjust ]
@@ -885,7 +887,7 @@ execute_and_log "$check_name" "$command" "$expected_result" "$simple_name"
 ##############################################
 check_name="V-259427"
 simple_name="Must_Be_Intergrated_Into_A_Directory_Services_Infrastructure"
-command="/usr/bin/dscl localhost -list . \| /usr/bin/grep -qvE '(Contact\|Search\|Local\|^$)'; /bin/echo $?"
+command="/usr/bin/dscl localhost -list . | /usr/bin/grep -qvE '(Contact|Search|Local|^$)'; /bin/echo $?"
 expected_result="0"
 
 execute_and_log "$check_name" "$command" "$expected_result" "$simple_name"
