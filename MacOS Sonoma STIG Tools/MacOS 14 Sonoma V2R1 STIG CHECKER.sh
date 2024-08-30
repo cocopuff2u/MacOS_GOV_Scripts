@@ -29,6 +29,8 @@
 #                Moved variable's around to better group what is being declared
 #                Moved checking for CSV Header from write_to_csv to initialize_logging
 #  2.2 8/15/24 - Removed main function as it caused errors within the commands
+#  2.3 8/26/24 - Corrected initialize_logging to write CSV header correctly
+#                Fixed check for V-259427 the \ was causing the check to fail
 ####################################################################################################
 # Script Supported STIG Version
 STIG_VERSION="MACOS 14 (SONOMA) V2R1" # [ Do Not Adjust ]
@@ -516,18 +518,18 @@ initialize_logging() {
     if [ "$LOG_TO_CSV" = true ]; then
         if [ ! -f "$CSV_LOG_FILE" ]; then
             # File does not exist; write the header
-            echo "$HEADER" >"$CSV_LOG_FILE"
+            echo "$csv_header" >"$CSV_LOG_FILE"
 
             if [ "$LOG_RESULTS_TO_USER_LOG_FOLDER" = true ]; then
-                echo "$HEADER" >"$USER_CSV_LOG_FILE"
+                echo "$csv_header" >"$USER_CSV_LOG_FILE"
             fi
 
-        elif ! grep -q "^$HEADER$" "$CSV_LOG_FILE"; then
+        elif ! grep -q "^$csv_header$" "$CSV_LOG_FILE"; then
             # File exists but does not contain the header; add the header
-            echo "$HEADER" >>"$CSV_LOG_FILE"
+            echo "$csv_header" >>"$CSV_LOG_FILE"
 
             if [ "$LOG_RESULTS_TO_USER_LOG_FOLDER" = true ]; then
-                echo "$HEADER" >>"$USER_CSV_LOG_FILE"
+                echo "$csv_header" >>"$USER_CSV_LOG_FILE"
             fi
         fi
     fi
@@ -885,7 +887,7 @@ execute_and_log "$check_name" "$command" "$expected_result" "$simple_name"
 ##############################################
 check_name="V-259427"
 simple_name="Must_Be_Intergrated_Into_A_Directory_Services_Infrastructure"
-command="/usr/bin/dscl localhost -list . \| /usr/bin/grep -qvE '(Contact\|Search\|Local\|^$)'; /bin/echo $?"
+command="/usr/bin/dscl localhost -list . | /usr/bin/grep -qvE '(Contact|Search|Local|^$)'; /bin/echo $?"
 expected_result="0"
 
 execute_and_log "$check_name" "$command" "$expected_result" "$simple_name"
