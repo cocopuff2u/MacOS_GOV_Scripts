@@ -44,10 +44,15 @@ sudo bash "~/downloads/Keychain Certificate Dumper.sh"
 
 ## Scripts and Automation Tools
 
-- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
 
-  ![Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
+  ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
 
-- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/Import_DoD_Certs.sh)**: Automates the import of DoD certificates from a government source into the macOS system keychain, ensuring secure and compliant certificate management.
+- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Import_DoD_Certs.sh)**: Streamline your certificate management with this script that automates the import of DoD certificates directly from a government source into your macOS system keychain, ensuring both security and compliance.
 
-  ![Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/3e83adc3971d9b66e50a161ddfad439137c63f0e/Keychain%20%26%20Certificates%20Scripts/images/Example_Import_DoD.png)
+You can easily run this script directly from the terminal with the following command:
+```bash
+sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_Scripts/main/Keychain_And_Certificates_Scripts/Import_DoD_Certs.sh)"
+```
+
+![Import DoD Certificates](images/Example_Import_DoD.png)
