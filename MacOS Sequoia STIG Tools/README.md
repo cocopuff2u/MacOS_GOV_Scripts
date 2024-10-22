@@ -1,5 +1,5 @@
 # MacOS 15 (Sequoia) DISA STIG Scripts
-**Please note that these scripts are intended to address MacOS Sequoia STIG requirements; however, Sequoia is currently in beta and DISA has not yet released any official information on it. The scripts provided here are based on MacOS Sonoma.**
+**Please note that these scripts are intended to address MacOS Sequoia STIG requirements; however, This is a beta phase, STIGs were just released and we are working quickly to update this. The scripts provided here are based on MacOS Sonoma at the moment.**
 
 Keep in mind that not all STIG requirements can be addressed via command line; some will require configuration profiles that need to be deployed through an MDM. These profiles can be found at [DISA STIGs](https://public.cyber.mil/stigs/), though they are not included in this package. If you have any recommendations or encounter issues, please don't hesitate to reach out.
 
