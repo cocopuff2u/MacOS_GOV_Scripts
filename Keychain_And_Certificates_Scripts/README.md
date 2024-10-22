@@ -44,10 +44,6 @@ sudo bash "~/downloads/Keychain Certificate Dumper.sh"
 
 ## Scripts and Automation Tools
 
-- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
-
-  ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
-
 - **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Import_DoD_Certs.sh)**: Streamline your certificate management with this script that automates the import of DoD certificates directly from a government source into your macOS system keychain, ensuring both security and compliance.
 
 You can easily run this script directly from the terminal with the following command:
@@ -56,3 +52,7 @@ sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_S
 ```
 
 ![Import DoD Certificates](images/Example_Import_DoD.png)
+
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+
+  ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
