@@ -36,7 +36,7 @@ STIG_VERSION="MACOS 15 (SEQUOIA) V1R1" # [ Do Not Adjust ]
 # Flag to Control Fix Execution
 # ==========================
 # Determines whether the script executes fixes.
-EXECUTE_FIX=true  # [ true | false (default) ]
+EXECUTE_FIX=false  # [ true | false (default) ]
 
 # ==========================
 # Usage of getopts
