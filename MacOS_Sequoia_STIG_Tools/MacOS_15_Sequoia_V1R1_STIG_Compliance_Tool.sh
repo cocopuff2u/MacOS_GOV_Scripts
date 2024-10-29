@@ -3083,9 +3083,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-15-005001"
 simple_name="os_sip_enable"
-check_command="/usr/bin/csrutil status | /usr/bin/grep -c 'System Integrity Protection status: enabled.' && /usr/bin/grep -c \"logger -s -p\" /etc/security/audit_warn "
-expected_result="1
-1"
+check_command="/usr/bin/csrutil status | /usr/bin/grep -c 'System Integrity Protection status: enabled.'"
+expected_result="1"
 severity="CAT I"
 fix_command="/usr/bin/csrutil enable"
 requires_mdm="false"
