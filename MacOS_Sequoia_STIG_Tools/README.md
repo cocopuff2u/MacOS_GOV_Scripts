@@ -171,4 +171,18 @@ This script evaluates your machine's configuration against the specified DISA ST
 <img src="images/Example_Fixer_Command_output_log.png" alt="Fixer Command Log Output">
 </p>
 
+Here’s a refined version of your **Future Enhancements** section:
+
+---
+
+### Future Enhancements
+
+- **Enhanced XML Support**: Implementing the ability to import XML files into the STIG Viewer, allowing for streamlined compliance reporting and analysis.
+
+- **Integration with MDM Solutions**: Introducing support for Mobile Device Management (MDM) solutions like Jamf and Intune, enabling the provision of extension attributes to ensure device compliance.
+
+### Feedback
+
+We welcome your suggestions for new features or enhancements! Your feedback is invaluable in helping us improve this tool for everyone. Please don’t hesitate to reach out with your ideas.
+
 ---
