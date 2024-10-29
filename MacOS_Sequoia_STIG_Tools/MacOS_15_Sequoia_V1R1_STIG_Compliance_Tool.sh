@@ -26,6 +26,10 @@
 # - Enabled skipping checks based on chip type or general skipping
 # - Added manual review checks
 # - Removed functions and variables related to chip version; automated the process
+#
+# Version 2.1 (10/29/24)
+# - Fixed a minor output with Fix Requires on check only
+#
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -1064,7 +1068,9 @@ execute_and_log() {
         for manual_review in "${Manual_Review_Checks[@]}"; do
             if [ "$check_name" == "$manual_review" ]; then
                 log_result "$check_name ($simple_name)" "Manual Check"
-                echo_manual_review "Manual review or adjustments based on configuration"
+                    if [ "$EXECUTE_FIX" = true ]; then
+                        echo_manual_review "Manual review or adjustments based on configuration"
+                    fi
                 return  # Exit the function after handling the manual review
             fi
         done
