@@ -2269,7 +2269,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-15-002023"
 simple_name="system_settings_improve_assistive_voice_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS  $.NSUserDefaults.alloc.initWithSuiteName('com.apple.Accessibility')\
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.Accessibility')\
 .objectForKey('AXSAudioDonationSiriImprovementEnabled').js
 EOS"
 expected_result="false"
@@ -2282,7 +2283,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-15-002024"
 simple_name="system_settings_improve_search_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS  $.NSUserDefaults.alloc.initWithSuiteName('com.apple.assistant.support')\
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.assistant.support')\
 .objectForKey('Search Queries Data Sharing Status').js
 EOS"
 expected_result="2"
