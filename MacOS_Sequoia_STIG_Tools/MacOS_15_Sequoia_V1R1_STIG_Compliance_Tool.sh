@@ -30,6 +30,9 @@
 # Version 2.1 (10/29/24)
 # - Fixed a minor output with Fix Requires on check only
 #
+# Version 2.2 (10/30/24)
+# - Fixed 002023 & 002024 expected values
+#
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -2269,7 +2272,7 @@ simple_name="system_settings_improve_assistive_voice_disable"
 check_command="/usr/bin/osascript -l JavaScript << EOS  $.NSUserDefaults.alloc.initWithSuiteName('com.apple.Accessibility')\
 .objectForKey('AXSAudioDonationSiriImprovementEnabled').js
 EOS"
-expected_result="1"
+expected_result="false"
 severity="CAT II"
 fix_command="com.apple.accessibility"
 requires_mdm="Yes"
@@ -2282,7 +2285,7 @@ simple_name="system_settings_improve_search_disable"
 check_command="/usr/bin/osascript -l JavaScript << EOS  $.NSUserDefaults.alloc.initWithSuiteName('com.apple.assistant.support')\
 .objectForKey('Search Queries Data Sharing Status').js
 EOS"
-expected_result="false"
+expected_result="2"
 severity="CAT II"
 fix_command="com.apple.assistant.support"
 requires_mdm="Yes"
