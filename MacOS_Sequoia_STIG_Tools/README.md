@@ -112,13 +112,13 @@ To customize your experience when running the script, you can use the following 
 - **Checks Only**: Add `-c` to run checks and logs only.
 
 ```bash
-sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sequoia_STIG_Tools/MacOS_15_Sequoia_V1R1_STIG_Compliance_Tool.sh)" -c
+sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sequoia_STIG_Tools/MacOS_15_Sequoia_V1R1_STIG_Compliance_Tool.sh)" -- -c
 ```
 
 - **Checks/Fixes Only**: Add `-f` to perform checks and apply fixes.
 
 ```bash
-sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sequoia_STIG_Tools/MacOS_15_Sequoia_V1R1_STIG_Compliance_Tool.sh)" -f
+sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sequoia_STIG_Tools/MacOS_15_Sequoia_V1R1_STIG_Compliance_Tool.sh)" -- -f
 ```
 
 ---
