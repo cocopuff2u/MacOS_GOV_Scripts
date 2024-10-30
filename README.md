@@ -8,24 +8,25 @@ A collection of scripts designed to enhance efficiency and security for macOS sy
 
 ## Scripts and Automation Tools
 
-- **[Sonoma STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sonoma_STIG_Tools)**: Automate the process of checking STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
+- **[Sequoia STIG Compliance Tools](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/MacOS_Sequoia_STIG_Tools)**: Automate the process of checking & fixing STIG compliance for macOS Sequoia. This script scans your system and generates a detailed compliance report.
+  <br>
+  ![Sonoma STIG Checker](MacOS_Sequoia_STIG_Tools/images/Example_check_terminal_log.png)
+  <br>
+
+
+- **[Sonoma STIG Compliance Tools](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/MacOS_Sonoma_STIG_Tools)**: Automate the process of checking & fixing STIG compliance for macOS Sonoma. This script scans your system and generates a detailed compliance report.
   <br>
   ![Sonoma STIG Checker](MacOS_Sonoma_STIG_Tools/images/Example_check_terminal_log.png)
   <br>
 
-- **[Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/main/MacOS_Sonoma_STIG_Tools)**: Automatically applies necessary fixes to meet STIG requirements for macOS Sonoma by adjusting system settings and configurations.
+- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts)**: Automates the import of DoD certificates into the macOS system keychain, ensuring secure and compliant certificate management.
   <br>
-  ![Sonoma STIG Fixer](MacOS_Sonoma_STIG_Tools/images/Example_terminal_fixer_log.png)
-  <br>
-
-- **[Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts)**: Automates the import of DoD certificates into the macOS system keychain, ensuring secure and compliant certificate management.
-  <br>
-  ![Import DoD Certificates](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts/images/Example_Import_DoD.png)
+  ![Import DoD Certificates](Keychain_And_Certificates_Scripts/images/Example_Import_DoD.png)
   <br>
 
-- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
   <br>
-  ![Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/69ec9613d3f8c2a65f30c3d503f5233695fc40f5/Keychain%20%26%20Certificates%20Scripts/images/Example_Keychain_Dump.png)
+  ![Keychain Certificate Dumper](Keychain_And_Certificates_Scripts/images/Example_Keychain_Dump.png)
   <br>
 
 ## Resources

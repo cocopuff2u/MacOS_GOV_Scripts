@@ -53,6 +53,6 @@ sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_S
 
 ![Import DoD Certificates](images/Example_Import_DoD.png)
 
-- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain%20Certificate%20Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain_Certificate_Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
 
   ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
