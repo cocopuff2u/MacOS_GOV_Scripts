@@ -6,8 +6,8 @@ These scripts are designed to check and address MacOS Sonoma STIG requirements. 
 
 ## Additional Tools That Complement These Scripts
 
-- **[Import DoD Certs](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/4508b51c47fba36636e022967e2ca8f5bc353458/Keychain%20%26%20Certificates%20Scripts)**: Automates the import of DoD Certs.
-- **[Keychain Cert Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/tree/4508b51c47fba36636e022967e2ca8f5bc353458/Keychain%20%26%20Certificates%20Scripts)**: Dumps all keychain certificates.
+- **[Import DoD Certs](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts)**: Automates the import of DoD Certs.
+- **[Keychain Cert Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts)**: Dumps all keychain certificates.
 
 ---
 
@@ -70,7 +70,7 @@ sudo bash "~/downloads/MacOS_14_Sonoma_V2R1_STIG_CHECKER.sh"
 
 ---
 
-## [MacOS 14 Sonoma STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/a2c0f162172935a523bbb7736e575634c8e41667/MacOS%20Sonoma%20STIG%20Tools/MacOS%2014%20Sonoma%20V2R1%20STIG%20CHECKER.sh)
+## [MacOS 14 Sonoma STIG Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/MacOS_Sonoma_STIG_Tools/MacOS_14_Sonoma_V2R1_STIG_CHECKER.sh)
 
 This script evaluates your machine's configuration against the specified DISA STIGs and generates detailed logs for the administrator. By default, logs are saved in the `/var/log/` or `~/log` directory, but you can customize the storage location within the script. The script supports output in plist, CSV, and log formats. Below are examples of various outputs and their appearance:
 
@@ -79,36 +79,36 @@ This script evaluates your machine's configuration against the specified DISA ST
 ### Terminal Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_check_terminal_log.png" alt="Terminal Log Output">
+<img src="images/Example_check_terminal_log.png" alt="Terminal Log Output">
 </p>
 
 ### Plist Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_plist_output.png" alt="Plist Log Output">
+<img src="images/Example_plist_output.png" alt="Plist Log Output">
 </p>
 
 ### CSV Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_csv_output.png" alt="CSV Log Output">
+<img src="images/Example_csv_output.png" alt="CSV Log Output">
 </p>
 
 ### Command Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_Command_output_log.png" alt="Command Log Output">
+<img src="images/Example_Command_output_log.png" alt="Command Log Output">
 </p>
 
 ### Failed/Passed Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_Passed_STIG_log.png" alt="Failed/Passed Log Output">
+<img src="images/Example_Passed_STIG_log.png" alt="Failed/Passed Log Output">
 </p>
 
 ---
 
-## [MacOS 14 Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/a2c0f162172935a523bbb7736e575634c8e41667/MacOS%20Sonoma%20STIG%20Tools/MacOS%2014%20Sonoma%20V2R1%20STIG%20FIXER.sh)
+## [MacOS 14 Sonoma STIG Fixer](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/MacOS_Sonoma_STIG_Tools/MacOS_14_Sonoma_V2R1_STIG_FIXER.sh)
 
 This script evaluates your machine's current settings against the required DISA STIGs and applies necessary fixes when failures are detected. It performs fixes only if a problem is identified. Some STIG requirements may require MDM configuration profiles. Below are examples of various outputs and their appearance:
 
@@ -117,11 +117,11 @@ This script evaluates your machine's current settings against the required DISA 
 ### Terminal Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_terminal_fixer_log.png" alt="Terminal Output">
+<img src="images/Example_terminal_fixer_log.png" alt="Terminal Output">
 </p>
 
 ### Fixer Command Log Output
 
 <p align="center">
-<img src="https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/1c4c60dd607640367ae24679899debc79d6157f7/MacOS%20Sonoma%20STIG%20Tools/images/Example_Fixer_Command_output_log.png" alt="Fixer Command Log Output">
+<img src="images/Example_Fixer_Command_output_log.png" alt="Fixer Command Log Output">
 </p>
