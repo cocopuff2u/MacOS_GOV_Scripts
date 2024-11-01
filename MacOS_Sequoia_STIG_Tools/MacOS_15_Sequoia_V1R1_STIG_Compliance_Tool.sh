@@ -33,6 +33,9 @@
 # Version 2.2 (10/30/24)
 # - Fixed 002023 & 002024 expected values
 #
+# Version 2.3 (1/1/24)
+# - Added APPL-15-002022 to manual, it requires FDA
+#
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -95,7 +98,6 @@ HIDE_SKIPPED_TERMINAL_OUTPUT=true     # Hides output for skipped checks in termi
 # Define Checks to Skip
 # ==========================
 General_Skip_Checks=("") # Example: General_Skip_Checks=("APPL-15-002052" "APPL-15-002051")
-# General_Skip_Checks=("APPL-15-002017" "APPL-15-002260" "APPL-15-002062") # Example: General_Skip_Checks=("APPL-15-002052" "APPL-15-002051")
 
 # ==========================
 # Chipset-Specific Checks
@@ -107,7 +109,9 @@ Intel_Only_Checks=("APPL-15-002230" "APPL-15-003013") # Example: Intel_Only_Chec
 # Manual Review Checks
 # ==========================
 # The following checks require manual review for various reasons.
-Manual_Review_Checks=("APPL-15-005120" "APPL-15-000012" "APPL-15-003001" "APPL-15-003013" "APPL-15-003050" "APPL-15-003051" "APPL-15-003052") # Example: Manual_Review_Checks=("APPL-15-002052" "APPL-15-002051")
+Manual_Review_Checks=("APPL-15-002022" "APPL-15-005120" "APPL-15-000012" "APPL-15-003001" "APPL-15-003013" "APPL-15-003050" "APPL-15-003051" "APPL-15-003052") # Example: Manual_Review_Checks=("APPL-15-002052" "APPL-15-002051")
+
+# Note - Running APPL-15-002022 requires Full Disk Access in the Terminal. If you are deploying via MDM, this access is automatically granted. Otherwise, ensure Full Disk Access is enabled for the Terminal in System Preferences.
 
 ####################################################################################################
 #
