@@ -4,14 +4,14 @@ This folder hosts a collection of scripts designed to manage and analyze macOS c
 
 ## Available Scripts
 
-### 1. [MacOS Configuration Profiles Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/7bed104825a662273dc30f59a0885508d90c86e2/Configuration%20Profile%20Scripts/MacOS_Configuration_Analyzer.py)
+### 1. [MacOS Configuration Profiles Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Configuration_Profile_Scripts/MacOS_Configuration_Analyzer.py)
 
 - **Description**: This script extracts and analyzes macOS configuration profiles. It parses the profiles, extracts key details, and identifies profiles with matching payload types, offering a comprehensive view of configuration profiles.
 - **Usage**: Run the script to generate a detailed report on each profile's name, payload count, and types. The script also identifies payload types that are present in multiple profiles.
-  
-  ![MacOS Configuration Profiles Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/7bed104825a662273dc30f59a0885508d90c86e2/Configuration%20Profile%20Scripts/images/Example_profile_output_analyzer.png)
-  
-  ![MacOS Configuration Profiles Checker](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/7bed104825a662273dc30f59a0885508d90c86e2/Configuration%20Profile%20Scripts/images/Example_Profile_output_matching.png)
+
+  ![MacOS Configuration Profiles Checker](images/Example_profile_output_analyzer.png)
+
+  ![MacOS Configuration Profiles Checker](images/Example_Profile_output_matching.png)
 
   **Note**: Administrative privileges are required to execute the `profiles` command. Ensure you have the necessary permissions before running the script.
 
