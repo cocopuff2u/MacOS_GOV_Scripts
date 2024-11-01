@@ -4,17 +4,17 @@ This folder contains scripts designed to manage the installation and uninstallat
 
 ## STIG Viewer V2
 
-- **[STIG Viewer V2 Setup](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/563ef7d09e68e1fb110b73b1ea33f90e40852d8a/STIG%20Viewer%20Scripts/STIG%20Viewer%20V2%20Setup.sh)**: Automates the installation and uninstallation of STIG Viewer V2. This script sets up the application as a macOS application and can optionally create a desktop icon for convenient access.
+- **[STIG Viewer V2 Setup](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/STIG_Viewer_Scripts/STIG_Viewer_V2_Setup.sh)**: Automates the installation and uninstallation of STIG Viewer V2. This script sets up the application as a macOS application and can optionally create a desktop icon for convenient access.
 
-  ![STIG Viewer V2 Setup](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/563ef7d09e68e1fb110b73b1ea33f90e40852d8a/STIG%20Viewer%20Scripts/images/Example_STIGViewer.png)
+  ![STIG Viewer V2 Setup](images/Example_STIGViewer.png)
 
   **Note:** STIG Viewer V2 is compatible exclusively with the Java version specified for macOS and requires the full Java JDK to function correctly. The necessary Java JDK is included in the Setup script.
 
 ## STIG Viewer V3
 
-Currently, **STIG Viewer V3** is not compatible with macOS. Despite Electron’s support for macOS, this version of the application has specific implementation issues or dependencies that are not yet resolved for macOS. 
+Currently, **STIG Viewer V3** is not compatible with macOS. Despite Electron’s support for macOS, this version of the application has specific implementation issues or dependencies that are not yet resolved for macOS.
 
-Future updates may provide compatibility if DISA addresses these issues. To expedite this process, consider contacting DISA via email at **disa.letterkenny.re.mbx.stig-customer-support-mailbox@mail.mil** to express interest in macOS support. 
+Future updates may provide compatibility if DISA addresses these issues. To expedite this process, consider contacting DISA via email at **disa.letterkenny.re.mbx.stig-customer-support-mailbox@mail.mil** to express interest in macOS support.
 
 Alternatively, if you have the expertise to repackage the Linux or Windows version, it might be possible to develop a functional macOS version of STIG Viewer V3.
 
@@ -53,11 +53,11 @@ JDK_URL="https://download.bell-sw.com/java/17.0.2+11/bellsoft-jdk17.0.2+11-macos
 To execute a script, use the command `sudo bash` followed by the script's name. For example:
 
 ```bash
-sudo bash "PATH/TO/SCRIPT/STIG Viewer V2 Setup.sh"
+sudo bash "PATH/TO/SCRIPT/STIG_Viewer_V2_Setup.sh"
 ```
 
 *Note:* Adjust the file path based on where you saved the file. For instance, if saved in your Downloads folder, the command would be:
 
 ```bash
-sudo bash "~/downloads/STIG Viewer V2 Setup.sh"
+sudo bash "~/downloads/STIG_Viewer_V2_Setup.sh"
 ```
