@@ -31,7 +31,7 @@ A collection of scripts designed to enhance efficiency and security for macOS sy
 
   - **[STIG Viewer V2](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/STIG_Viewer_Scripts)**: Automates the installation and uninstallation of STIG Viewer V2.
   <br>
-  ![Keychain Certificate Dumper](STIG_Viewer_Scripts/images/Example_STIGViewer.png)
+  ![Keychain Certificate Dumper](STIG_Viewer_Scripts/images/Example_STIG_Viewer.png)
   <br>
 
 

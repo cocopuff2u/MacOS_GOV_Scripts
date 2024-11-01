@@ -6,7 +6,7 @@ This folder contains scripts designed to manage the installation and uninstallat
 
 - **[STIG Viewer V2 Setup](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/STIG_Viewer_Scripts/STIG_Viewer_V2_Setup.sh)**: Automates the installation and uninstallation of STIG Viewer V2. This script sets up the application as a macOS application and can optionally create a desktop icon for convenient access.
 
-  ![STIG Viewer V2 Setup](images/Example_STIGViewer.png)
+  ![STIG Viewer V2 Setup](images/Example_STIG_Viewer.png)
 
   **Note:** STIG Viewer V2 is compatible exclusively with the Java version specified for macOS and requires the full Java JDK to function correctly. The necessary Java JDK is included in the Setup script.
 
