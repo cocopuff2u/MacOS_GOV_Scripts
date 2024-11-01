@@ -153,7 +153,7 @@ This script evaluates your machine's configuration against the specified DISA ST
 <img src="images/Example_Command_output_log.png" alt="Command Log Output">
 </p>
 
-### Failed/Passed Log Output
+### Failed/Passed/Manual Log Output
 
 <p align="center">
 <img src="images/Example_Passed_STIG_log.png" alt="Failed/Passed Log Output">
@@ -165,21 +165,13 @@ This script evaluates your machine's configuration against the specified DISA ST
 <img src="images/Example_terminal_fixer_log.png" alt="Terminal Output">
 </p>
 
-### Fixer Command Log Output
-
-<p align="center">
-<img src="images/Example_Fixer_Command_output_log.png" alt="Fixer Command Log Output">
-</p>
-
-Here’s a refined version of your **Future Enhancements** section:
-
----
-
 ### Future Enhancements
 
 - **Enhanced XML Support**: Implementing the ability to import XML files into the STIG Viewer, allowing for streamlined compliance reporting and analysis.
 
 - **Integration with MDM Solutions**: Introducing support for Mobile Device Management (MDM) solutions like Jamf and Intune, enabling the provision of extension attributes to ensure device compliance.
+
+- **GUI Support**: Adding a GUI output with SwiftDialog to present users with a visual interface to look through
 
 ### Feedback
 
