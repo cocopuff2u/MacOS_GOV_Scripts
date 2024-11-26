@@ -15,6 +15,8 @@
 #  1.0 8/07/23 Original
 #  1.1 10/21/24 - Removed force smart card removal changed it to a warning, cleaned up log out,
 #  added logging, changed OSAprompts, and changed wording for things
+#  1.2 11/26/24 - Added a check/create section to verify /var/tmp exists, does not exist on brand new
+#  out of the box machines
 #
 # Issues: If Smart Card is present it will not accept the pin when granting trust per self-signed cert
 # Solution: Ask the user to remove smart card doing those steps, logic put in place if smart card is not
@@ -102,6 +104,17 @@ ZIP_URL="https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-dod_app
 TEMP_DIR="/var/tmp"
 GENERIC_FOLDER_NAME="DOD_Certs"
 ZIP_FILE_NAME="DOD_Certs.zip"
+
+# Ensure /var/tmp exists
+if [ ! -d "$TEMP_DIR" ]; then
+    log_message "Temporary directory $TEMP_DIR does not exist. Creating it..."
+    mkdir -p "$TEMP_DIR"
+    if [ $? -ne 0 ]; then
+        log_message "Failed to create temporary directory $TEMP_DIR. Exiting."
+        exit 1
+    fi
+    log_message "Temporary directory created: $TEMP_DIR"
+fi
 
 # Define subfolder names for different certificate types
 SUBFOLDER1="_DoD/Intermediate_and_Issuing_CA_Certs"
