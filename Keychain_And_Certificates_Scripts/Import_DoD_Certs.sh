@@ -36,7 +36,7 @@ ENABLE_LOGGING=false  # Default logging setting
 ####################################################################################################
 # Function to log messages to console and log file
 ####################################################################################################
-SCRIPT_VERSION="1.1"
+SCRIPT_VERSION="1.2"
 
 # Function to display usage instructions
 usage() {
