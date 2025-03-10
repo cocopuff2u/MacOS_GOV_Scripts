@@ -16,6 +16,7 @@
 #   History
 #
 #  1.0 03/04/25 - Original
+#  1.1 03/04/25 - Added SwiftDialog Check
 #
 ####################################################################################################
 
@@ -49,6 +50,7 @@ Script_Version="V1.0"
 # Logging configuration
 LOG_FILE="/var/log/smartcarddumper.log"
 
+
 # Enhanced logging function - defined early to ensure it's available everywhere
 log_message() {
     local message="[$Script_Name][$Script_Version][$(date '+%Y-%m-%d %H:%M:%S')] - $1"
@@ -62,6 +64,46 @@ log_message() {
         fi
     fi
 }
+
+####################################################################################################
+# Validate / install swiftDialog
+####################################################################################################
+
+function dialogInstall() {
+    dialogURL=$(curl -L --silent --fail "https://api.github.com/repos/swiftDialog/swiftDialog/releases/latest" | awk -F '"' "/browser_download_url/ && /pkg\"/ { print \$4; exit }")
+    expectedDialogTeamID="PWA5E9TQ59"
+    log_message "Installing swiftDialog...."
+    workDirectory=$( /usr/bin/basename "$0" )
+    tempDirectory=$( /usr/bin/mktemp -d "/private/tmp/$workDirectory.XXXXXX" )
+    /usr/bin/curl --location --silent "$dialogURL" -o "$tempDirectory/Dialog.pkg"
+    teamID=$(/usr/sbin/spctl -a -vv -t install "$tempDirectory/Dialog.pkg" 2>&1 | awk '/origin=/ {print $NF }' | tr -d '()')
+    if [[ "$expectedDialogTeamID" == "$teamID" ]]; then
+        /usr/sbin/installer -pkg "$tempDirectory/Dialog.pkg" -target /
+        sleep 2
+        dialogVersion=$( /usr/local/bin/dialog --version )
+        log_message "swiftDialog version ${dialogVersion} installed; proceeding...."
+    else
+        osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\r• Dialog Team ID verification failed\r\r" with title "Dialog Missing: Error" buttons {"Close"} with icon caution' & exit 0
+    fi
+    /bin/rm -Rf "$tempDirectory"
+}
+
+function dialogCheck() {
+    if [ ! -e "/Library/Application Support/Dialog/Dialog.app" ]; then
+        log_message "swiftDialog not found. Installing...."
+        dialogInstall
+    else
+        dialogVersion=$(/usr/local/bin/dialog --version)
+        if [[ "${dialogVersion}" < "${swiftDialogMinimumRequiredVersion}" ]]; then
+            log_message "swiftDialog version ${dialogVersion} found but swiftDialog ${swiftDialogMinimumRequiredVersion} or newer is required; updating...."
+            dialogInstall
+        else
+            log_message "swiftDialog version ${dialogVersion} found; proceeding...."
+        fi
+    fi
+}
+
+dialogCheck
 
 # Check if running as root for log file access
 if [[ $EUID -ne 0 ]]; then

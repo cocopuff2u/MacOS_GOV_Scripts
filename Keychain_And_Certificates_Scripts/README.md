@@ -57,7 +57,3 @@ sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_S
 
   ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
 
-- **[SmartCard Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/SmartCardDumper.zsh)**: Displays and/or exports all certificates from the local smartcard/s present on the device.
-
-![Keychain Certificate Dumper](images/Example_SmartCardDumper.png)
-
