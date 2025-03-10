@@ -5,7 +5,7 @@
 #
 # # SmartCardMapping
 #
-# Purpose: Maps the UPN from a smartcard to the AltSecurityIdentities attribute for local accounts
+# Purpose:Maps the PIV UPN from a smartcard to the AltSecurityIdentities attribute for local accounts
 #
 # https://github.com/cocopuff2u
 #

@@ -56,6 +56,6 @@ sudo zsh "~/downloads/SmartCardDumper.zsh"
 
 ![Keychain Certificate Dumper](images/Example_SmartCardDumper.png)
 
-- **[SmartCard Mapping](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/SmartCard_CaC_Tools/SmartCardMapping.zsh)**: This script maps the UPN ID from the SmartCard/CaC to the local account. It functions similarly to the pairing feature but eliminates the need for manual pairing, allowing users with multiple SmartCards/CaCs to work seamlessly. Additionally, it enables users who renew their SmartCard/CaC to continue using their account without needing to unpair and re-pair.
+- **[SmartCard Mapping](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/SmartCard_CaC_Tools/SmartCardMapping.zsh)**: This script maps the PIV UPN ID from the SmartCard/CaC to the local account. It functions similarly to the pairing feature but eliminates the need for manual pairing, allowing users with multiple SmartCards/CaCs to work seamlessly. Additionally, it enables users who renew their SmartCard/CaC to continue using their account without needing to unpair and re-pair.
 
 ![Keychain Certificate Dumper](images/Example_SmartCardMapping.png)
