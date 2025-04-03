@@ -16,6 +16,8 @@
 #   History
 #
 #  1.0 03/10/25 - Original
+#  1.1 03/10/25 - /etc/SmartcardLogin.plist may exist already, having the script recreate it on
+#                every run to resolve issues with the smartcard not being recognized.
 #
 ####################################################################################################
 
@@ -216,10 +218,14 @@ createAltSecId (){
 }
 
 createMapping (){
-    log_message "Checking for SmartcardLogin.plist"
-    if [ ! -f /etc/SmartcardLogin.plist ];then
-        log_message "Creating /etc/SmartcardLogin.plist"
-        /bin/cat > "/etc/SmartcardLogin.plist" << 'Attr_Mapping'
+    log_message "Setting up SmartcardLogin.plist"
+    if [ -f /etc/SmartcardLogin.plist ]; then
+        log_message "SmartcardLogin.plist already exists"
+        log_message "Removing existing SmartcardLogin.plist"
+        rm -f /etc/SmartcardLogin.plist
+    fi
+    log_message "Creating /etc/SmartcardLogin.plist"
+    /bin/cat > "/etc/SmartcardLogin.plist" << 'Attr_Mapping'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -244,10 +250,7 @@ createMapping (){
 </dict>
 </plist>
 Attr_Mapping
-        log_message "SmartcardLogin.plist created successfully"
-    else
-        log_message "SmartcardLogin.plist already exists"
-    fi
+    log_message "SmartcardLogin.plist created successfully"
 }
 
 uninstall() {
