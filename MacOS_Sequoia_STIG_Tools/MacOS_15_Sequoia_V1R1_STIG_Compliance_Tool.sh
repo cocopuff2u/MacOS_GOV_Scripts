@@ -36,6 +36,8 @@
 # Version 2.3 (1/1/24)
 # - Added APPL-15-002022 to manual, it requires FDA
 #
+# Version 2.4 (4/10/25)
+# - Added APPL-15-002271 to be in compliance with Apple macOS 15 (Sequoia) Security Technical Implementation Guide :: Version 1, Release: 3 Benchmark Date: 02 Apr 2025
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
