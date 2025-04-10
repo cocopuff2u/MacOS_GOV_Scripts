@@ -2848,6 +2848,20 @@ requires_mdm="true"
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
+check_name="APPL-15-002271"
+simple_name="iphone_mirroring_disable"
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+.objectForKey('allowiPhoneMirroring').js
+EOS"
+expected_result="false"
+severity="CAT II"
+fix_command="com.apple.applicationaccess"
+requires_mdm="true"
+
+execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
+
+##############################################
 check_name="APPL-15-003001"
 simple_name="os_certificate_authority_trust"
 check_command="/usr/bin/security dump-keychain /Library/Keychains/System.keychain | /usr/bin/awk -F'\"' '/labl/ {print \$4}'"
