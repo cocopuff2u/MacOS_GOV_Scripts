@@ -36,6 +36,8 @@
 # Version 2.3 (1/1/24)
 # - Added APPL-15-002022 to manual, it requires FDA
 #
+# Version 2.4 (4/10/25)
+# - Added APPL-15-002271 to be in compliance with Apple macOS 15 (Sequoia) Security Technical Implementation Guide :: Version 1, Release: 3 Benchmark Date: 02 Apr 2025
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -2839,6 +2841,20 @@ simple_name="icloud_freeform_disable"
 check_command="/usr/bin/osascript -l JavaScript << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
 .objectForKey('allowCloudFreeform').js
+EOS"
+expected_result="false"
+severity="CAT II"
+fix_command="com.apple.applicationaccess"
+requires_mdm="true"
+
+execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
+
+##############################################
+check_name="APPL-15-002271"
+simple_name="iphone_mirroring_disable"
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+.objectForKey('allowiPhoneMirroring').js
 EOS"
 expected_result="false"
 severity="CAT II"
