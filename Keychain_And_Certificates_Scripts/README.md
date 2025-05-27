@@ -53,12 +53,16 @@ sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_S
 
 ![Import DoD Certificates](images/Example_Import_DoD.png)
 
-- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain_Certificate_Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
-
-  ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
+---
 
 - **[SmartCard Mapping](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/SmartCard_Mapping.sh)**: Maps the smartcard/Yubikey/CaC to the users account for login
 
-  <img src="images/smartcard_mapping.png" alt="Keychain Certificate Dumper" width="350"/>
+  <img src="images/smartcard_mapping.png" alt="Keychain Certificate Dumper" width="500"/>
+
+---
+
+- **[Keychain Certificate Dumper](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Keychain_Certificate_Dumper.sh)**: Exports a log of all keychain certificates on macOS, providing a detailed record for secure certificate management.
+
+  ![Keychain Certificate Dumper](images/Example_Keychain_Dump.png)
 
 
