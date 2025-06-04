@@ -55,7 +55,7 @@ sudo bash -c "$(curl -s https://raw.githubusercontent.com/cocopuff2u/MacOS_GOV_S
 
 ---
 
-- **[Generate DoD Certificates Mobileconfig](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/dod_certs_to_mobileconfig.py)**: This script generates a macOS configuration profile (`.mobileconfig`) that includes the latest DoD PKI root and intermediate certificates. The resulting profile can be deployed via an MDM solution or installed manually to ensure trusted access to DoD-secured websites, services, and internal resources on macOS devices.
+- **[Generate DoD Certificates Mobileconfig](https://github.com/cocopuff2u/MacOS_GOV_Scripts/blob/main/Keychain_And_Certificates_Scripts/Generate_DoD_Certs_Mobileconfig.py)**: This script generates a macOS configuration profile (`.mobileconfig`) that includes the latest DoD PKI root and intermediate certificates. The resulting profile can be deployed via an MDM solution or installed manually to ensure trusted access to DoD-secured websites, services, and internal resources on macOS devices.
 
 ---
 
