@@ -16,23 +16,29 @@
 #   History
 #
 #  1.0 03/10/25 - Original
-#  1.1 03/14/25 - /etc/SmartcardLogin.plist may exist already, having the script recreate it on
+#
+#  1.1 03/10/25 - /etc/SmartcardLogin.plist may exist already, having the script recreate it on
 #                every run to resolve issues with the smartcard not being recognized.
+#
 #  1.2 05/27/25 - Added filevault option for M1 Arch, logging, and osascript dialog support
+#
+#. 1.3 06/13/25 - Improved OSAScript prompt handling, refined swiftDialog checks, added missing user
+#                 prompts,and updated default variables for enhanced usability.
 #
 ####################################################################################################
 
 ####################################################################################################
 #                                    USER CONFIGURATION SECTION
 ####################################################################################################
-# Set to "true" to uninstall
+# Set to "true" to uninstall (Default is false)
 UNINSTALL=false
 
-# Set to "true" to enable logging to /var/log, "false" to disable
+# Set to "true" to enable logging to /var/log, "false" to disable (Default is true)
 ENABLE_LOGGING=true
 
-# Set to "true" to use osascript for dialogs instead of swiftDialog
-USE_OSASCRIPT=false
+# Set to "false" to use SwiftDialog for dialogs instead of OSAScript (Default is true)
+# Its recommended to use swiftDialog for better user experience
+USE_OSASCRIPT=true
 
 ####################################################################################################
 Script_Name="SmartcardMapping"
@@ -75,6 +81,10 @@ function dialogInstall() {
 }
 
 function dialogCheck() {
+    if [[ "$USE_OSASCRIPT" == "true" ]]; then
+        log_message "OSASCRIPT mode enabled, skipping swiftDialog check."
+        return
+    fi
     if [ ! -e "/Library/Application Support/Dialog/Dialog.app" ]; then
         log_message "swiftDialog not found. Installing...."
         dialogInstall
@@ -133,16 +143,18 @@ prompt (){
 
     log_message "Displaying smartcard insertion prompt"
     if [[ "$USE_OSASCRIPT" == "true" ]]; then
-        osascript -e 'display dialog "Please insert your smartcard to begin." with title "Smartcard Mapping" buttons {"Cancel"} default button "Cancel" with icon caution' &
-        OSA_PID=$!
-        while [[ $( security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -lt 1 ]]; do 
-            if ! kill -0 $OSA_PID 2>/dev/null; then
-                log_message "Dialog window closed by user - exiting script"
+        prompt_message="Please insert CAC before proceeding"
+        while true; do
+            button=$(osascript -e "display dialog \"$prompt_message\" with title \"Smartcard Mapping\" buttons {\"Cancel\", \"Proceed\"} default button \"Proceed\" with icon caution" 2>&1)
+            if [[ $? -ne 0 ]] || [[ "$button" == *"Cancel"* ]]; then
+                log_message "User cancelled smartcard prompt - exiting script"
                 exit 0
             fi
-            sleep 1
+            if [[ $( security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -ge 1 ]]; then
+                break
+            fi
+            prompt_message="CAC not detected, please insert CAC"
         done
-        kill $OSA_PID 2>/dev/null
     else
         "$DIALOG_PATH" \
             --title "Smartcard Mapping" \
@@ -311,18 +323,22 @@ uninstall() {
     else
         log_message "SmartcardLogin.plist not found"
     fi
-    
-    "$DIALOG_PATH" \
-        --title "Smartcard Mapping" \
-        --messagealignment center \
-        --message "Smartcard mapping has been removed for $AUID" \
-        --hideicon \
-        --ontop \
-        --moveable \
-        --small \
-        --buttonstyle center \
-        --height 200 \
-        --button1text "Quit" 2> /dev/null
+
+    if [[ "$USE_OSASCRIPT" == "true" ]]; then
+        osascript -e "display dialog \"Smartcard mapping has been removed for $AUID\" with title \"Smartcard Mapping\" buttons {\"Quit\"} default button \"Quit\" with icon note"
+    else
+        "$DIALOG_PATH" \
+            --title "Smartcard Mapping" \
+            --messagealignment center \
+            --message "Smartcard mapping has been removed for $AUID" \
+            --hideicon \
+            --ontop \
+            --moveable \
+            --small \
+            --buttonstyle center \
+            --height 200 \
+            --button1text "Quit" 2> /dev/null
+    fi
     
     log_message "Uninstallation completed"
 }
