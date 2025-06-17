@@ -25,6 +25,8 @@
 #. 1.3 06/13/25 - Improved OSAScript prompt handling, refined swiftDialog checks, added missing user
 #                 prompts,and updated default variables for enhanced usability.
 #
+#  1.4 6/17/25  -  Added the EXEMPT_GROUP value to account for exempt user workflow.
+#
 ####################################################################################################
 
 ####################################################################################################
@@ -296,7 +298,7 @@ createMapping (){
 		  <string></string>
 	   </array>
      <key>NotEnforcedGroup</key>
-     <string></string>
+     <string>EXEMPT_GROUP</string>
 </dict>
 </plist>
 Attr_Mapping
