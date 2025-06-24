@@ -27,6 +27,9 @@
 #
 #  1.4 6/17/25  -  Added the EXEMPT_GROUP value to account for exempt user workflow.
 #
+#  1.5 6/24/25  -  Added all DoD Trusted Authorities to /etc/SmartcardLogin.plist, this will allow
+#                  admins to use the checkCertificateTrust function to verify the smartcard with DoD
+#
 ####################################################################################################
 
 ####################################################################################################
@@ -41,6 +44,12 @@ ENABLE_LOGGING=true
 # Set to "false" to use SwiftDialog for dialogs instead of OSAScript (Default is true)
 # Its recommended to use swiftDialog for better user experience
 USE_OSASCRIPT=true
+
+# Set to "true" to include DoD Trusted Authorities in SmartcardLogin.plist (Default is true)
+# This will grab the latest DoD Trusted Authorities and add them to the SmartcardLogin.plist
+# The DoD Ceritificates should be deployed to the system via a profile or manually and ensured they
+# are trusted by the system for this to function properly.
+INCLUDE_TRUSTED_AUTHORITIES=true
 
 ####################################################################################################
 Script_Name="SmartcardMapping"
@@ -276,8 +285,39 @@ createMapping (){
         rm -f /etc/SmartcardLogin.plist
         log_message "Removed existing SmartcardLogin.plist"
     fi
+
+    trusted_authorities_entries=()
+    if [[ "$INCLUDE_TRUSTED_AUTHORITIES" == "true" ]]; then
+        log_message "Including DoD Trusted Authorities in SmartcardLogin.plist"
+        TMPDIR=$(mktemp -d)
+        ZIPURL="https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-dod_approved_external_pkis_trust_chains.zip"
+        ZIPFILE="$TMPDIR/unclass-dod_approved_external_pkis_trust_chains.zip"
+        curl -L --silent "$ZIPURL" -o "$ZIPFILE"
+        unzip -q "$ZIPFILE" -d "$TMPDIR"
+        base_dir=$(find "$TMPDIR" -maxdepth 1 -type d -name 'DoD_Approved_External_PKIs_Trust_Chains*' | head -n 1)
+        cert_dir1="$base_dir/_DoD/Intermediate_and_Issuing_CA_Certs"
+        cert_dir2="$base_dir/_DoD/Trust_Anchors_Self-Signed"
+        fingerprints=()
+        find "$cert_dir1" -type f -name '*.cer' -print0 > "$TMPDIR/certs1.list"
+        find "$cert_dir2" -type f -name '*.cer' -print0 > "$TMPDIR/certs2.list"
+        cat "$TMPDIR/certs1.list" "$TMPDIR/certs2.list" > "$TMPDIR/allcerts.list"
+        while IFS= read -r -d '' cert; do
+            fp=$(openssl x509 -in "$cert" -noout -fingerprint -sha256 2>/dev/null)
+            if [[ -z "$fp" ]]; then
+                fp=$(openssl x509 -in "$cert" -inform der -noout -fingerprint -sha256 2>/dev/null)
+            fi
+            fp=$(echo "$fp" | sed 's/^.*Fingerprint=//' | tr -d ':' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+            if [[ -n "$fp" ]]; then
+                trusted_authorities_entries+=("        <string>$fp</string>")
+            fi
+        done < "$TMPDIR/allcerts.list"
+        rm -rf "$TMPDIR"
+    else
+        trusted_authorities_entries=("        <string></string>")
+    fi
+
     log_message "Creating /etc/SmartcardLogin.plist"
-    /bin/cat > "/etc/SmartcardLogin.plist" << 'Attr_Mapping'
+    /bin/cat > "/etc/SmartcardLogin.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -289,19 +329,19 @@ createMapping (){
                <string>NT Principal Name</string>
           </array>
           <key>formatString</key>
-          <string>Kerberos:$1</string>
+          <string>Kerberos:\$1</string>
           <key>dsAttributeString</key>
           <string>dsAttrTypeStandard:AltSecurityIdentities</string>
      </dict>
      <key>TrustedAuthorities</key>
-	   <array>
-		  <string></string>
-	   </array>
+     <array>
+$(printf "%s\n" "${trusted_authorities_entries[@]}")
+     </array>
      <key>NotEnforcedGroup</key>
      <string>EXEMPT_GROUP</string>
 </dict>
 </plist>
-Attr_Mapping
+EOF
     log_message "SmartcardLogin.plist created successfully"
 }
 
