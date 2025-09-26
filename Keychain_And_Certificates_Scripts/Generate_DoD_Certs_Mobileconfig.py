@@ -14,10 +14,11 @@
 #   History
 #
 #  1.0 6/04/25 - Original
+#  1.1 6/06/25 - Adjusted for new DoD Url
 #
 ####################################################################################################
 
-SCRIPT_VERSION = "1.0"
+SCRIPT_VERSION = "1.1"
 
 import base64
 import io
@@ -283,20 +284,13 @@ def main():
     pem_file = tempdir + "/dod.txt"
     pem_file_prefix = tempdir + "/DoD_CA-"
 
-    # URL to the DOD PKE library, will parse its contents to locate the .zip file to process
-    pke_library_url = "https://public.cyber.mil/pki-pke/pkipke-document-library/"
+    # Direct URL to the DoD certificates zip file
+    dod_zip_url = "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip"
     context = ssl._create_unverified_context()
 
-    pke_site_contents = urllib.request.urlopen(url=pke_library_url, context=context)
+    print(f"Attempting to get .zip file from {dod_zip_url}")
 
-    pke_bytes = pke_site_contents.read()
-    pke_site_contents_string = pke_bytes.decode("utf8")
-    pke_site_contents.close()
-
-    certificate_url = extract_dod_cert_url(pke_site_contents_string)
-    print(f"Attempting to get .zip file from {certificate_url}")
-
-    zip_filename = extract_dod_cert_zip_file(certificate_url, tempdir)
+    zip_filename = extract_dod_cert_zip_file(dod_zip_url, tempdir)
     bundle_version = "unknown"
     version_match = re.search(r'certificates_pkcs7_v(\d+_\d+)_', zip_filename, re.IGNORECASE)
     if version_match:
