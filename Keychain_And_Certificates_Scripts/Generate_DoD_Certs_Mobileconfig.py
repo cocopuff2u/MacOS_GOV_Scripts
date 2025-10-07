@@ -15,14 +15,77 @@
 #
 #  1.0 6/04/25 - Original
 #  1.1 9/26/25 - Adjusted for new DoD Url
+#  2.0 10/15/25 - Logging improvements, robust PKCS#7 and PEM handling, expiry filtering, name
+# disambiguation, add support for other (WCF, JITC, ECA) certificate sets.
 #
 ####################################################################################################
 
-SCRIPT_VERSION = "1.1"
+SCRIPT_VERSION = "2.0"
+
+# Global toggle: default behavior to skip expired certificates (can be overridden by --skip-expired)
+SKIP_EXPIRED = False
+
+# Top-level toggle: comment items out to disable
+ENABLED_SOURCES = [
+    "dod",
+    "wcf",
+    "jitc",
+    "eca",
+]
+
+
+####################################################################################################
+#   Usage
+#     python3 Untitled-1.py [options]
+#
+#   Options
+#     -r, --removal-allowed       Allow users to remove the installed profile.
+#         --organization ORG      Organization name to stamp into the profile.
+#     -o, --output PATH           Output .mobileconfig path (ignored when multiple sources).
+#     -e, --export-certs          Export individual certs to ./certs/<profile> as PEM files.
+#     -x, --skip-expired          Skip certificates that are expired (default controlled by SKIP_EXPIRED).
+#         --source SRC            Which cert set(s) to include:
+#                                 'dod' | 'wcf' | 'jitc' | 'eca' | 'both' (dod+wcf) | 'all' | 'config' (default).
+#         --timeout SECONDS       Network timeout when downloading the ZIP (default: 30).
+#         --retries N             Retry count for downloading the ZIP (default: 3).
+#
+#   Examples
+#     python3 Untitled-1.py --source dod -x -e
+#     python3 Untitled-1.py --source all --organization "My Org" --timeout 45 --retries 5
+#
+####################################################################################################
+
+# Unified source definitions (clean and consistent)
+SOURCES = {
+    "dod": {
+        "zip_url": "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip",
+        "profile_title": "DoD_PKI_Chain",
+        "display_prefix": "DoD_Certificates",
+        "description_prefix": "Latest DoD Certificates from https://cyber.mil",
+    },
+    "wcf": {
+        "zip_url": "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_WCF.zip",
+        "profile_title": "WCF_BI_PKI_Chain",
+        "display_prefix": "WCF_Certificates",
+        "description_prefix": "Latest WCF B&I Certificates from https://cyber.mil",
+    },
+    "jitc": {
+        "zip_url": "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_JITC.zip",
+        "profile_title": "JITC_PKI_Chain",
+        "display_prefix": "JITC_Certificates",
+        "description_prefix": "Latest JITC Certificates from https://cyber.mil",
+    },
+    "eca": {
+        "zip_url": "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_ECA.zip",
+        "profile_title": "ECA_PKI_Chain",
+        "display_prefix": "ECA_Certificates",
+        "description_prefix": "Latest ECA Certificates from https://cyber.mil",
+    },
+}
 
 import base64
 import io
-import optparse
+import argparse
 import os
 import os.path
 import re
@@ -32,7 +95,11 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
-from datetime import datetime
+import hashlib
+import shutil
+import time
+from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from plistlib import dump
@@ -41,12 +108,13 @@ from uuid import uuid4
 
 
 class URLHtmlParser(HTMLParser):
-    links = []
+    def __init__(self):
+        super().__init__()
+        self.links = []
 
     def handle_starttag(self, tag, attrs):
         if tag != "a":
             return
-
         for attr in attrs:
             if "href" in attr[0]:
                 self.links.append(attr[1])
@@ -86,7 +154,11 @@ class ConfigurationProfile:
         self.data["PayloadContent"] = []
 
         self.export = export
-        self.processed_certs = set()  # Track processed certificates
+        self.processed_certs = set()  # Track processed certificates (CNs)
+        # New: track unique certs by fingerprint and handle name collisions
+        self.processed_hashes = set()
+        self.name_counts = defaultdict(int)
+        self.used_display_names = set()
 
     def _addCertificatePayload(self, payload_content, certname, certtype):
         """Add a Certificate payload to the profile. Takes a dict which will be the
@@ -110,7 +182,8 @@ class ConfigurationProfile:
 
         payload_dict["PayloadDisplayName"] = certname
         payload_dict["AllowAllAppsAccess"] = True
-        payload_dict["PayloadCertificateFileName"] = certname + ".cer"
+        # Use sanitized filename to avoid plist issues across all sources (e.g., WCF)
+        payload_dict["PayloadCertificateFileName"] = sanitize_filename(certname) + ".cer"
         payload_dict["KeyIsExtractable"] = True
         payload_dict["PayloadDescription"] = "Adds a PKCS#1-formatted certificate"
 
@@ -131,38 +204,50 @@ class ConfigurationProfile:
         payload_content_ascii = payload_content.encode("ascii")
         payload_content_bytes = base64.b64decode(payload_content_ascii)
 
-        name_regex_pattern = r"(^subject.*)((CN\s?=\s?)(.*))"  # Added r-prefix
-        name_regex = re.compile(name_regex_pattern, flags=re.MULTILINE)
-        name = name_regex.search(pemfile).group(4)
-
-        # Skip if we've already processed this cert
-        if name in self.processed_certs:
-            print(f"Skipping duplicate certificate: {name}")
+        # New: compute fingerprint to detect true duplicates
+        fingerprint = hashlib.sha256(payload_content_bytes).hexdigest()
+        if fingerprint in self.processed_hashes:
+            # True duplicate content; skip
             return
 
-        self.processed_certs.add(name)
+        # Always derive names from the certificate itself for correctness
+        subj_cn, iss_cn = parse_subject_issuer_from_pem(cert.group(0))
+        base_name = (subj_cn or "Unnamed Certificate").strip()
+        issuer = (iss_cn or "").strip()
 
-        issuer_regex_pattern = r"(^issuer.*)((CN\s?=\s?)(.*))"  # Added r-prefix
-        issuer_regex = re.compile(issuer_regex_pattern, flags=re.MULTILINE)
-        issuer = issuer_regex.search(pemfile).group(4)
+        # Determine type
+        certtype = "root" if issuer and issuer == base_name else "intermediate"
 
-        # get type
-        if issuer == name:
-            certtype = "root"
-        else:
-            certtype = "intermediate"
+        # Disambiguate display name when multiple certs share same CN
+        serial_tail = get_cert_serial_tail(pemfile)  # e.g., last 8 hex of serial or ""
+        display_name = base_name
+        if base_name in self.used_display_names:
+            if serial_tail:
+                display_name = f"{base_name} [{serial_tail}]"
+            else:
+                self.name_counts[base_name] += 1
+                display_name = f"{base_name} ({self.name_counts[base_name]})"
+        self.used_display_names.add(display_name)
 
-        print(f"Adding {name} to profile...")
-        self._addCertificatePayload(bytes(payload_content_bytes), name, certtype)
+        print(f"Adding {display_name} to profile...")
+        self._addCertificatePayload(bytes(payload_content_bytes), display_name, certtype)
+
+        # Track processed sets
+        self.processed_hashes.add(fingerprint)
+        self.processed_certs.add(base_name)  # kept for compatibility
 
         # write PEM to file
         if self.export:
-            print(f"Writing {name}.pem to certs folder...")
-            self._writePEMtoFile(pemfile, name)
+            print(f"Writing {display_name}.pem to certs folder...")
+            self._writePEMtoFile(pemfile, display_name)
 
     def _writePEMtoFile(self, pemfile, name):
-        Path("./certs").mkdir(parents=True, exist_ok=True)
-        output_path = f"./certs/{name}.pem"
+        # Export under a per-profile directory to avoid cross-zip mixing
+        profile_dir = sanitize_filename(self.data.get("PayloadDisplayName", "profile"))
+        base_dir = Path("./certs") / profile_dir
+        base_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = sanitize_filename(name)
+        output_path = base_dir / f"{safe_name}.pem"
         with open(output_path, "w") as cert_file:
             cert_file.write(pemfile)
 
@@ -178,8 +263,8 @@ def makeNewUUID():
 
 
 def errorAndExit(errmsg):
-    print >> sys.stderr, errmsg
-    exit(-1)
+    print(errmsg, file=sys.stderr)
+    sys.exit(-1)
 
 
 def extract_dod_cert_url(content):
@@ -192,29 +277,164 @@ def extract_dod_cert_url(content):
     return
 
 
-def extract_dod_cert_zip_file(zip_url, tempdir):
-    """Takes the URL to the .zip file and extracts the contents to a temp directory.  Returns the location of the .pem file for processing"""
-    context = ssl._create_unverified_context()
-    r = urllib.request.urlopen(url=zip_url, context=context)
-    zip_filename = os.path.basename(urlparse(zip_url).path)
-    z = zipfile.ZipFile(io.BytesIO(r.read()))
-    z.extractall(tempdir)
-    return zip_filename
+def extract_dod_cert_zip_file(zip_url, tempdir, timeout=30, retries=3):
+    """Download the ZIP with retries/timeouts and extract to tempdir. Returns the basename of the downloaded ZIP URL."""
+    req = urllib.request.Request(
+        zip_url,
+        headers={"User-Agent": f"DoD-PKI-Downloader/{SCRIPT_VERSION} (+https://cyber.mil)"}
+    )
+    last_err = None
+    for attempt in range(1, int(retries) + 1):
+        try:
+            with urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=timeout) as r:
+                data = r.read()
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                zf.extractall(tempdir)
+            return os.path.basename(urlparse(zip_url).path)
+        except Exception as e:
+            last_err = e
+            if attempt < int(retries):
+                backoff = min(2 ** attempt, 10)
+                print(f"Download failed (attempt {attempt}/{retries}): {e}. Retrying in {backoff}s...")
+                time.sleep(backoff)
+            else:
+                print(f"Error: Failed to download or extract ZIP after {retries} attempts: {e}")
+                raise
 
 
-def find_p7b_file(tempdir):
+def extract_bundle_version(text):
+    """Try to extract a version like vX_Y or vX.Y from filenames/dirnames."""
+    patterns = [
+        r'Certificates_PKCS7_v(\d+[_\.]\d+)_',
+        r'certificates_pkcs7_v(\d+[_\.]\d+)_',
+        r'WCF.*?_v(\d+[_\.]\d+)',
+        r'certificates_pkcs7_WCF_v(\d+[_\.]\d+)',
+        r'JITC.*?_v(\d+[_\.]\d+)',
+        r'certificates_pkcs7_JITC_v(\d+[_\.]\d+)',
+        r'ECA.*?_v(\d+[_\.]\d+)',
+        r'certificates_pkcs7_ECA_v(\d+[_\.]\d+)',
+        r'\bv(\d+[_\.]\d+)\b',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            return m.group(1).replace('_', '.')
+    return "unknown"
+
+_EXPIRY_WARNED = False  # one-time warning flag
+
+def _parse_not_after(date_str):
+    """
+    Parse an OpenSSL notAfter string into an aware UTC datetime.
+    Supports 'GMT'/'UTC' or no timezone.
+    """
+    date_str = date_str.strip()
+    fmts = [
+        "%b %d %H:%M:%S %Y %Z",  # e.g., Jun  7 12:00:00 2027 GMT
+        "%b %d %H:%M:%S %Y",     # without timezone
+    ]
+    for fmt in fmts:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognized notAfter format: {date_str}")
+
+def cert_is_expired(pem_text):
+    """
+    Returns True only when we can confidently determine the certificate is expired.
+    Uses a temporary file with openssl to avoid stdin parsing issues.
+    Flow:
+      1) Read notAfter via `openssl x509 -noout -enddate -in <tmp>`, compare to now (UTC).
+      2) If step 1 fails, fallback to `openssl x509 -noout -checkend 0 -in <tmp>`.
+      3) If still uncertain, return False (do not skip).
+    Enable DOD_CERTS_DEBUG_EXPIRY=1 for verbose logging.
+    """
+    global _EXPIRY_WARNED
+    debug = os.environ.get("DOD_CERTS_DEBUG_EXPIRY") == "1"
+
+    m = re.search(r"(-+BEGIN CERTIFICATE-+.*?-+END CERTIFICATE-+)", pem_text, re.DOTALL)
+    if not m:
+        if debug:
+            print("expiry: no PEM block found -> not expired")
+        return False
+    pem_block = m.group(1).encode("ascii", errors="ignore")
+
+    tmp_path = None
+    try:
+        # Write PEM block to a temp file for robust openssl parsing
+        tf = tempfile.NamedTemporaryFile(mode="wb", suffix=".pem", delete=False)
+        tmp_path = tf.name
+        tf.write(pem_block)
+        tf.flush()
+        tf.close()
+
+        # Primary: parse notAfter from file
+        res = subprocess.run(
+            ["openssl", "x509", "-noout", "-enddate", "-in", tmp_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if res.returncode == 0:
+            line = res.stdout.decode("utf-8", "ignore").strip()
+            # Expected: notAfter=Jun  7 12:00:00 2027 GMT
+            _, _, date_str = line.partition("=")
+            try:
+                not_after = _parse_not_after(date_str)
+                now = datetime.now(timezone.utc)
+                expired = not_after <= now
+                if debug:
+                    print(f"expiry: notAfter={not_after.isoformat()} now={now.isoformat()} -> expired={expired}")
+                return expired
+            except Exception as e:
+                if debug:
+                    print(f"expiry: _parse_not_after failed: {e}")
+                # fall through to checkend
+
+        if debug and res.returncode != 0:
+            print(f"expiry: enddate rc={res.returncode}, stderr={res.stderr.decode('utf-8','ignore').strip()}")
+
+        # Fallback: checkend from file
+        res2 = subprocess.run(
+            ["openssl", "x509", "-noout", "-checkend", "0", "-in", tmp_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if debug:
+            print(f"expiry: checkend rc={res2.returncode}")
+        if res2.returncode == 0:
+            return False
+        elif res2.returncode == 1:
+            return True
+        else:
+            if not _EXPIRY_WARNED:
+                print("Warning: openssl returned an unexpected code while checking expiry; treating as not expired.")
+                _EXPIRY_WARNED = True
+            return False
+
+    except FileNotFoundError:
+        if not _EXPIRY_WARNED:
+            print("Warning: openssl not found; cannot check expiry. Proceeding without expiry filtering.")
+            _EXPIRY_WARNED = True
+        return False
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+def find_p7b_file(tempdir, title_hint="DoD_PKI_Chain"):
     """Attempts to return paths to all pkcs7 bundle files, prioritizing Root CA files"""
     root_p7b_files = []
     other_p7b_files = []
     bundle_version = "unknown"
     
-    # Get version from directory name
+    # Try to find version from directory names using a few patterns
     for dirpath, subdir, files in os.walk(tempdir):
         dirname = os.path.basename(dirpath)
-        version_match = re.search(r'Certificates_PKCS7_v(\d+_\d+)_', dirname, re.IGNORECASE)
-        if version_match:
-            # Replace underscore with dot in version
-            bundle_version = version_match.group(1).replace('_', '.')
+        maybe_ver = extract_bundle_version(dirname)
+        if maybe_ver != "unknown":
+            bundle_version = maybe_ver
             break
             
     for dirpath, subdir, files in os.walk(tempdir):
@@ -229,167 +449,413 @@ def find_p7b_file(tempdir):
                     other_p7b_files.append(full_path)
     
     if not root_p7b_files and not other_p7b_files:
-        print("Warning: No .p7b files found!")
-        sys.exit(1)
+        print("Info: No .p7b files found; will look for PEM files instead.")
+        return [], title_hint, bundle_version
         
     print(f"Found {len(root_p7b_files)} Root CA bundles and {len(other_p7b_files)} other certificate bundles")
-    return root_p7b_files + other_p7b_files, "DoD_PKI_Chain", bundle_version
+    return root_p7b_files + other_p7b_files, title_hint, bundle_version
 
+# New: discover PEM-like files in extracted zip
+def find_pem_files(tempdir):
+    pem_like_exts = {".pem", ".crt", ".cer"}
+    pem_files = []
+    for dirpath, subdir, files in os.walk(tempdir):
+        for f in files:
+            if os.path.splitext(f)[1].lower() in pem_like_exts:
+                pem_files.append(os.path.join(dirpath, f))
+    return pem_files
+
+# New: split a text into individual PEM certificate blocks
+def extract_cert_blocks(text):
+    return re.findall(r"-+BEGIN CERTIFICATE-+.*?-+END CERTIFICATE-+", text, re.DOTALL)
+
+# New: get subject/issuer CNs from a PEM block using openssl
+def parse_subject_issuer_from_pem(pem_text):
+    """
+    Returns (subject_cn, issuer_cn) strings ('' if unavailable).
+    Uses a temporary file for robust openssl parsing.
+    """
+    m = re.search(r"(-+BEGIN CERTIFICATE-+.*?-+END CERTIFICATE-+)", pem_text, re.DOTALL)
+    if not m:
+        return "", ""
+    pem_block = m.group(1).encode("ascii", errors="ignore")
+    tmp_path = None
+    try:
+        tf = tempfile.NamedTemporaryFile(mode="wb", suffix=".pem", delete=False)
+        tmp_path = tf.name
+        tf.write(pem_block)
+        tf.flush()
+        tf.close()
+
+        res = subprocess.run(
+            ["openssl", "x509", "-noout", "-subject", "-issuer", "-in", tmp_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if res.returncode != 0:
+            return "", ""
+        out = res.stdout.decode("utf-8", "ignore")
+        subj_line = ""
+        iss_line = ""
+        for line in out.splitlines():
+            if line.lower().startswith("subject="):
+                subj_line = line
+            elif line.lower().startswith("issuer="):
+                iss_line = line
+
+        cn_pat = re.compile(r"CN\s*=\s*([^/\n,]+)")
+        subj_cn = ""
+        iss_cn = ""
+
+        # Support both '/.../CN=foo/...' and '... CN= foo, ...'
+        m1 = cn_pat.search(subj_line) or re.search(r"/CN=([^/\n]+)", subj_line)
+        if m1:
+            subj_cn = m1.group(1).strip()
+
+        m2 = cn_pat.search(iss_line) or re.search(r"/CN=([^/\n]+)", iss_line)
+        if m2:
+            iss_cn = m2.group(1).strip()
+
+        return subj_cn, iss_cn
+    except FileNotFoundError:
+        return "", ""
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+# New: get short serial suffix for name disambiguation
+def get_cert_serial_tail(pem_text):
+    """
+    Return the last 8 hex chars of the certificate serial (for disambiguation), or '' on failure.
+    """
+    m = re.search(r"(-+BEGIN CERTIFICATE-+.*?-+END CERTIFICATE-+)", pem_text, re.DOTALL)
+    if not m:
+        return ""
+    pem_block = m.group(1).encode("ascii", errors="ignore")
+    try:
+        res = subprocess.run(
+            ["openssl", "x509", "-noout", "-serial", "-inform", "pem", "-in", "-"],
+            input=pem_block, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+        )
+        if res.returncode != 0:
+            return ""
+        # Output like: serial=01ABCD...
+        out = res.stdout.decode("utf-8", "ignore").strip()
+        parts = out.split("=", 1)
+        hex_serial = parts[1].strip() if len(parts) == 2 else ""
+        hex_serial = re.sub(r"[^0-9A-Fa-f]", "", hex_serial)
+        return hex_serial[-8:].upper() if hex_serial else ""
+    except FileNotFoundError:
+        return ""
+
+# New: sanitize filenames from display names
+def sanitize_filename(name):
+    # Replace slashes and other unsafe chars
+    name = re.sub(r"[\\/:\*\?\"<>\|\t\n\r]", "_", name)
+    name = re.sub(r"\s+", " ", name).strip()
+    return name
+
+
+# New: helper to get the raw notAfter string for logging
+def get_cert_not_after(pem_text):
+    """
+    Returns the 'Not Valid After' date string. Tries -enddate first, then falls back to
+    parsing 'Not After'/'Not Valid After' from `openssl x509 -text`.
+    Uses a temporary file to avoid stdin parsing issues.
+    """
+    m = re.search(r"(-+BEGIN CERTIFICATE-+.*?-+END CERTIFICATE-+)", pem_text, re.DOTALL)
+    if not m:
+        return ""
+    pem_block = m.group(1).encode("ascii", errors="ignore")
+
+    tmp_path = None
+    try:
+        # Write PEM block to a temp file for robust openssl parsing
+        tf = tempfile.NamedTemporaryFile(mode="wb", suffix=".pem", delete=False)
+        tmp_path = tf.name
+        tf.write(pem_block)
+        tf.flush()
+        tf.close()
+
+        # First try: -enddate (produces: notAfter=...)
+        res = subprocess.run(
+            ["openssl", "x509", "-noout", "-enddate", "-in", tmp_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if res.returncode == 0:
+            line = res.stdout.decode("utf-8", "ignore").strip()
+            # Expected: notAfter=Jun  7 12:00:00 2027 GMT
+            _, _, date_str = line.partition("=")
+            return date_str.strip()
+
+        # Fallback: -text and parse 'Not After' or 'Not Valid After'
+        res2 = subprocess.run(
+            ["openssl", "x509", "-noout", "-text", "-in", tmp_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if res2.returncode == 0:
+            text = res2.stdout.decode("utf-8", "ignore")
+            m2 = re.search(r"Not\s+(?:Valid\s+)?After\s*:\s*(.+)", text, re.IGNORECASE)
+            if m2:
+                return m2.group(1).strip()
+
+        return ""
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+def ensure_openssl_available():
+    """Ensure openssl is available; exit with a clear error if not."""
+    try:
+        res = subprocess.run(["openssl", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            print("Warning: 'openssl' returned a non-zero exit. Certificate parsing may fail.")
+    except FileNotFoundError:
+        print("Error: 'openssl' not found on PATH. Please install OpenSSL and try again.")
+        sys.exit(1)
 
 def main():
-    # set up argument parser
-    parser = optparse.OptionParser()
-    parser.set_usage(
-        """usage: %prog [options]
-       Run '%prog --help' for more information."""
+    # set up argument parser (argparse; optparse is deprecated)
+    parser = argparse.ArgumentParser(
+        description="Generate a macOS .mobileconfig containing the latest DoD PKI certificates."
     )
-
-    # Optionals
-    parser.add_option(
-        "--removal-allowed",
-        "-r",
+    parser.add_argument(
+        "--removal-allowed", "-r",
         action="store_true",
         default=False,
-        help="""Specifies that the profile can be removed.""",
+        help="Specifies that the profile can be removed."
     )
-    parser.add_option(
+    parser.add_argument(
         "--organization",
-        action="store",
         default="",
-        help="Cosmetic name for the organization deploying the profile.",
+        help="Cosmetic name for the organization deploying the profile."
     )
-    parser.add_option(
-        "--output",
-        "-o",
-        action="store",
+    parser.add_argument(
+        "--output", "-o",
         metavar="PATH",
-        help="Output path for profile. Defaults to '<name of DOD Cert file>.mobileconfig' in the current working directory.",
+        help="Output path for profile. Defaults to '<display_name>.mobileconfig' in the current working directory."
     )
-    parser.add_option(
-        "--export-certs",
-        "-e",
+    parser.add_argument(
+        "--export-certs", "-e",
         action="store_true",
         default=False,
-        help="""If set, will save individual certs into a ./certs folder.""",
+        help="If set, save individual certs into ./certs/<profile> as PEM files."
     )
+    parser.add_argument(
+        "--skip-expired", "-x",
+        action="store_true",
+        default=None,  # None => use SKIP_EXPIRED top-level toggle
+        help="Skip expired certificates (defaults to SKIP_EXPIRED if not provided)."
+    )
+    parser.add_argument(
+        "--source",
+        default="config",
+        help="Which set(s): 'dod', 'wcf', 'jitc', 'eca', 'both', 'all', or 'config' (default, uses ENABLED_SOURCES)."
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=30,
+        help="Network timeout in seconds when downloading the ZIP (default: 30)."
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=3,
+        help="Retry count for downloading the ZIP (default: 3)."
+    )
+    options = parser.parse_args()
 
-    options, args = parser.parse_args()
+    # Ensure OpenSSL is available before doing anything heavy
+    ensure_openssl_available()
 
-    if len(args):
-        parser.print_usage()
-        sys.exit(-1)
+    # Resolve skip_expired from CLI or top-level toggle
+    skip_expired = options.skip_expired if options.skip_expired is not None else SKIP_EXPIRED
 
-    # create working directory
-    tempdir = tempfile.mkdtemp()
-    pem_file = tempdir + "/dod.txt"
-    pem_file_prefix = tempdir + "/DoD_CA-"
+    # Source selection with top-level toggles
+    selected = (options.source or "config").strip().lower()
+    valid = {"dod", "wcf", "jitc", "eca", "both", "all", "config"}
+    if selected not in valid:
+        print(f"Unknown --source '{options.source}'. Use one of: {', '.join(sorted(valid))}.")
+        sys.exit(2)
 
-    # Direct URL to the DoD certificates zip file
-    dod_zip_url = "https://dl.dod.cyber.mil/wp-content/uploads/pki-pke/zip/unclass-certificates_pkcs7_DoD.zip"
-    context = ssl._create_unverified_context()
-
-    print(f"Attempting to get .zip file from {dod_zip_url}")
-
-    zip_filename = extract_dod_cert_zip_file(dod_zip_url, tempdir)
-    bundle_version = "unknown"
-    version_match = re.search(r'certificates_pkcs7_v(\d+_\d+)_', zip_filename, re.IGNORECASE)
-    if version_match:
-        bundle_version = version_match.group(1)
-
-    # extract the certificates in .pem format from the p7b files
-    pem_bundle_files, pem_title, bundle_version = find_p7b_file(tempdir)
-    
-    print("\nProcessing certificate bundles...")
-    for pem_bundle_file in pem_bundle_files:
-        is_root = "Root_CA" in pem_bundle_file
-        bundle_name = os.path.basename(pem_bundle_file)
-        print(f"\nExtracting certificates from: {bundle_name}")
-        
-        process = subprocess.Popen(
-            ["openssl", "pkcs7", "-in", pem_bundle_file, "-inform", "der", 
-             "-print_certs", "-out", pem_file],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            shell=False
-        )
-        process.communicate()
-
-        # Split into individual certificates
-        split_process = subprocess.Popen(
-            ["split", "-p", "subject=", pem_file, pem_file_prefix],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            shell=False
-        )
-        split_process.communicate()
-
-    # setup output file
-    if options.output:
-        output_file = options.output
+    if selected == "config":
+        sources = [s for s in ENABLED_SOURCES if s in SOURCES]
+    elif selected == "both":
+        sources = ["dod", "wcf"]
+    elif selected == "all":
+        sources = list(SOURCES.keys())
     else:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        date_str = datetime.now().strftime('%Y%m%d')
-        display_name = f"DoD_Certificates_V{bundle_version}"
-        output_file = os.path.join(script_dir, f"{display_name}.mobileconfig")
-    
-    print("\nStarting certificate processing...")
-    print(f"Output file will be: {output_file}")
+        sources = [selected]
 
-    description = (
-        f"Latest DoD Certificates from https://public.cyber.mil\n\n"
-        f"This configuration profile was generated using a Python script.\n\n"
-        f"Last Updated: {datetime.now().strftime('%Y-%m-%d')}\n"
-        f"File Version: {bundle_version}\n"
-        f"Script Developer: github.com/cocopuff2u\n"
-        f"Script Version: {SCRIPT_VERSION}"
-    )
+    if not sources:
+        print("No sources selected. Adjust ENABLED_SOURCES or pass --source.")
+        sys.exit(2)
 
-    display_name = os.path.splitext(os.path.basename(output_file))[0]
-    newPayload = ConfigurationProfile(
-        identifier=pem_title,
-        uuid=False,
-        removal_allowed=options.removal_allowed,
-        organization=options.organization,
-        displayname=display_name,
-        export=options.export_certs,
-    )
-    newPayload.data["PayloadDescription"] = description
+    if options.output and len(sources) > 1:
+        print("Note: --output is ignored when processing multiple sources. Separate files will be generated.")
 
-    # Sort certificates to prioritize root CAs
-    cert_files = []
-    for cert in os.listdir(tempdir):
-        if cert.startswith("DoD_CA-"):
-            cert_files.append(cert)
-    
-    print(f"\nFound {len(cert_files)} certificate files to process")
-    
-    # Sort to ensure root CAs are processed first
-    cert_files.sort()
-    print("Processing certificates in sorted order...")
+    for src in sources:
+        # create working directory
+        tempdir = tempfile.mkdtemp()
+        try:
+            pem_file = tempdir + "/bundle.txt"
+            pem_file_prefix = tempdir + "/Cert-"  # kept for reference, we use a per-bundle prefix below
 
-    self_signed_count = 0
-    non_self_signed_count = 0
-    
-    # Process all DoD certificate files
-    for cert in cert_files:
-        with open(os.path.join(tempdir, cert), "r") as f:
-            certData = f.read()
-            # Check if self-signed by comparing subject and issuer
-            name_match = re.search(r"subject.*?CN\s?=\s?(.*?)(?:\n|$)", certData)
-            issuer_match = re.search(r"issuer.*?CN\s?=\s?(.*?)(?:\n|$)", certData)
-            if name_match and issuer_match and name_match.group(1) == issuer_match.group(1):
-                self_signed_count += 1
+            src_def = SOURCES[src]
+            zip_url = src_def["zip_url"]
+            context = ssl._create_unverified_context()
+
+            print(f"\n[{src.upper()}] Attempting to get .zip file from {zip_url}")
+
+            # Use the new robust downloader without diff markers
+            zip_filename = extract_dod_cert_zip_file(zip_url, tempdir, timeout=options.timeout, retries=options.retries)
+
+            # Attempt to get version from zip filename first
+            bundle_version = extract_bundle_version(zip_filename)
+
+            # extract the certificates in .pem format from the p7b files
+            pem_bundle_files, pem_title, dir_version = find_p7b_file(tempdir, title_hint=src_def["profile_title"])
+            if dir_version != "unknown":
+                bundle_version = dir_version
+
+            print("\nProcessing certificate bundles...")
+            # Aggregate from PKCS#7 and PEM-like files
+            cert_datas = []
+            pkcs7_blocks_total = 0
+            if pem_bundle_files:
+                for pem_bundle_file in pem_bundle_files:
+                    bundle_name = os.path.basename(pem_bundle_file)
+                    print(f"\nExtracting certificates from: {bundle_name}")
+                    proc = subprocess.run(
+                        ["openssl", "pkcs7", "-in", pem_bundle_file, "-inform", "der", "-print_certs", "-out", pem_file],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+                    if proc.returncode != 0:
+                        err = proc.stderr.decode("utf-8", "ignore").strip()
+                        print(f"Warning: openssl pkcs7 failed for {bundle_name}: {err}")
+                        continue
+                    try:
+                        with open(pem_file, "r", errors="ignore") as f:
+                            content = f.read()
+                        blocks = extract_cert_blocks(content)
+                        if blocks:
+                            cert_datas.extend(blocks)
+                            pkcs7_blocks_total += len(blocks)
+                            print(f"  - Found {len(blocks)} certificates")
+                        else:
+                            print("  - No certificates found in this bundle output.")
+                    except Exception as e:
+                        print(f"Warning: failed to parse PKCS#7 output: {e}")
             else:
-                non_self_signed_count += 1
-            newPayload.addPayloadFromPEM(certData)
+                print("No PKCS#7 bundles to process.")
 
-    print(f"\nSummary:")
-    print(f"- Self-signed certificates: {self_signed_count}")
-    print(f"- Non-self-signed certificates: {non_self_signed_count}")
-    print(f"- Total unique certificates: {len(newPayload.processed_certs)}")
-    print(f"\nSaving configuration profile to: {output_file}")
-    
-    newPayload.finalizeAndSave(output_file)
-    print("Configuration profile creation complete!")
+            # setup output file
+            if options.output and len(sources) == 1:
+                output_file = options.output
+                display_name = os.path.splitext(os.path.basename(output_file))[0]
+            else:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                display_name = f"{src_def['display_prefix']}_V{bundle_version}"
+                output_file = os.path.join(script_dir, f"{display_name}.mobileconfig")
+        
+            print("\nStarting certificate processing...")
+            print(f"Output file will be: {output_file}")
 
+            description = (
+                f"{src_def['description_prefix']}\n\n"
+                f"This configuration profile was generated using a Python script.\n\n"
+                f"Last Updated: {datetime.now().strftime('%Y-%m-%d')}\n"
+                f"File Version: {bundle_version}\n"
+                f"Script Developer: github.com/cocopuff2u\n"
+                f"Script Version: {SCRIPT_VERSION}"
+            )
+
+            newPayload = ConfigurationProfile(
+                identifier=pem_title,
+                uuid=False,
+                removal_allowed=options.removal_allowed,
+                organization=options.organization,
+                displayname=display_name,
+                export=options.export_certs,
+            )
+            newPayload.data["PayloadDescription"] = description
+
+            # From PEM-like files directly in the archive (do NOT reset cert_datas here)
+            pem_like_files = find_pem_files(tempdir)
+            if pem_like_files:
+                total_blocks = 0
+                for fpath in pem_like_files:
+                    try:
+                        with open(fpath, "r", errors="ignore") as f:
+                            content = f.read()
+                        blocks = extract_cert_blocks(content)
+                        if blocks:
+                            cert_datas.extend(blocks)
+                            total_blocks += len(blocks)
+                    except Exception:
+                        continue
+                print(f"Found {total_blocks} PEM certificate blocks across {len(pem_like_files)} PEM-like files")
+            else:
+                print("No PEM-like files found in the archive.")
+
+            # Print PKCS#7 block count after the PEM-like section
+            if pkcs7_blocks_total:
+                print(f"Found {pkcs7_blocks_total} PEM certificate blocks from PKCS#7 bundles")
+
+            if not cert_datas:
+                print("Error: No certificates found to process (no PKCS#7 output and no PEM blocks).")
+                sys.exit(1)
+
+            print("Processing certificates in sorted order...")
+            cert_datas.sort()
+
+            imported_self_signed = 0
+            imported_non_self_signed = 0
+            expired_skipped = 0
+            
+            for certData in cert_datas:
+                # Always compute CN/issuer from certificate block for correctness
+                subj_cn, iss_cn = parse_subject_issuer_from_pem(certData)
+                cn = subj_cn or "Unknown CN"
+                issuer_cn = iss_cn or ""
+
+                # Optionally skip expired certificates
+                if skip_expired and cert_is_expired(certData):
+                    not_after_str = get_cert_not_after(certData) or "unknown"
+                    print(f"Skipping expired certificate: {cn} (Not Valid After: {not_after_str})")
+                    expired_skipped += 1
+                    continue
+
+                is_self_signed = bool(cn and issuer_cn and cn == issuer_cn)
+                newPayload.addPayloadFromPEM(certData)
+                if is_self_signed:
+                    imported_self_signed += 1
+                else:
+                    imported_non_self_signed += 1
+
+            print(f"\nSummary for {src.upper()}:")
+            print(f"- Self-signed certificates: {imported_self_signed}")
+            print(f"- Non-self-signed certificates: {imported_non_self_signed}")
+            if skip_expired:
+                print(f"- Expired certificates skipped: {expired_skipped}")
+            # Use processed_hashes for true unique count
+            print(f"- Total unique certificates: {len(newPayload.processed_hashes)}")
+            print(f"\nSaving configuration profile to: {output_file}")
+            
+            newPayload.finalizeAndSave(output_file)
+            print("Configuration profile creation complete!")
+        finally:
+            # Ensure no temp data can bleed into another run/source
+            try:
+                shutil.rmtree(tempdir)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     main()
