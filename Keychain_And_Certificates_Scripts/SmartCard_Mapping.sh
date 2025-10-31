@@ -30,7 +30,7 @@
 #  1.5 6/24/25  -  Added all DoD Trusted Authorities to /etc/SmartcardLogin.plist, this will allow
 #                  admins to use the checkCertificateTrust function to verify the smartcard with DoD
 #
-#  1.6 6/24/25  -  Fixed the script to function from another admin user and not just the logged in user
+#  1.6 10/31/25  -  Fixed the script to function from another admin user and not just the logged in user
 #
 ####################################################################################################
 
