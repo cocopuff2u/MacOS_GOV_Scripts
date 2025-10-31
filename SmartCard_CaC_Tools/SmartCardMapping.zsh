@@ -30,6 +30,8 @@
 #  1.5 6/24/25  -  Added all DoD Trusted Authorities to /etc/SmartcardLogin.plist, this will allow
 #                  admins to use the checkCertificateTrust function to verify the smartcard with DoD
 #
+#  1.6 10/31/25  -  Fixed the script to function from another admin user and not just the logged in user
+#
 ####################################################################################################
 
 ####################################################################################################
@@ -123,6 +125,10 @@ log_message "Script started"
 # Check for logged in user.
 currentUser="$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ && ! /loginwindow/ { print $3 }' )"
 log_message "Current user: $currentUser"
+if [[ -z "$currentUser" || "$currentUser" == "loginwindow" ]]; then
+    log_message "No user is currently logged in. Exiting."
+    exit 1
+fi
 DIALOG_PATH="/usr/local/bin/dialog"
 
 # Architecture and user info
@@ -147,7 +153,7 @@ checkForPaired (){
 # Prompt the user to insert card, once inserted prompt will go away.
 prompt (){
     log_message "Checking for inserted smartcard"
-    if [[ $( security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -ge 1 ]]; then
+    if [[ $(launchctl asuser $AUID_UID security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -ge 1 ]]; then
         log_message "Smartcard already inserted"
         return 0
     fi
@@ -161,7 +167,7 @@ prompt (){
                 log_message "User cancelled smartcard prompt - exiting script"
                 exit 0
             fi
-            if [[ $( security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -ge 1 ]]; then
+            if [[ $(launchctl asuser $AUID_UID security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -ge 1 ]]; then
                 break
             fi
             prompt_message="CAC not detected, please insert CAC"
@@ -182,7 +188,7 @@ prompt (){
             --commandfile /var/tmp/dialog.log \
             --position center 2> /dev/null &
         DIALOG_PID=$!
-        while [[ $( security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -lt 1 ]]; do 
+        while [[ $(launchctl asuser $AUID_UID security list-smartcards 2>/dev/null | grep -c com.apple.pivtoken ) -lt 1 ]]; do 
             if ! kill -0 $DIALOG_PID 2>/dev/null; then
                 log_message "Dialog window closed by user - exiting script"
                 exit 0
@@ -201,7 +207,7 @@ getUPN(){
     log_message "Created temporary directory: $tmpdir"
     
     # Export certs on smartcard to temporary directory:
-    /usr/bin/security export-smartcard -e "$tmpdir"
+    launchctl asuser $AUID_UID /usr/bin/security export-smartcard -e "$tmpdir"
     log_message "Certificates exported to temporary directory: $tmpdir"
     
     # Get path to Certificate for PIV Authentication:
