@@ -12,8 +12,8 @@
 ####################################################################################################
 #                                         History                                                  #
 ####################################################################################################
-# Version 1.0 (10/14/2024)
-# - Based off (MacOS Sequoia STIG Tools/MacOS 14 Sequoia V2R1 STIG CHECKER.sh)
+# Version 1.0 (12/05/2025)
+# - Based off Offical Tahoe STIGS V1R1
 # - Initial script creation
 ####################################################################################################
 # ==========================
@@ -82,13 +82,13 @@ General_Skip_Checks=("") # Example: General_Skip_Checks=("APPL-26-002052" "APPL-
 # Chipset-Specific Checks
 # ==========================
 Apple_Only_Checks=("APPL-26-002220" "APPL-26-005120") # Example: Apple_Only_Checks=("APPL-26-002052" "APPL-26-002051")
-Intel_Only_Checks=("APPL-26-002230" "APPL-26-003013") # Example: Intel_Only_Checks=("APPL-26-002052" "APPL-26-002051")
+Intel_Only_Checks=("APPL-26-002230" ) # Example: Intel_Only_Checks=("APPL-26-002052" "APPL-26-002051")
 
 # ==========================
 # Manual Review Checks
 # ==========================
 # The following checks require manual review for various reasons.
-Manual_Review_Checks=("APPL-26-002022" "APPL-26-005120" "APPL-26-000012" "APPL-26-003001" "APPL-26-003013" "APPL-26-003050" "APPL-26-003051" "APPL-26-003052") # Example: Manual_Review_Checks=("APPL-26-002052" "APPL-26-002051")
+Manual_Review_Checks=("APPL-26-002022" "APPL-26-000012" "APPL-26-003001" "APPL-26-003050" "APPL-26-003051" "APPL-26-003052") # Example: Manual_Review_Checks=("APPL-26-002052" "APPL-26-002051")
 
 # Note - Running APPL-26-002022 requires Full Disk Access in the Terminal. If you are deploying via MDM, this access is automatically granted. Otherwise, ensure Full Disk Access is enabled for the Terminal in System Preferences.
 
@@ -680,7 +680,7 @@ echo_command_check() {
 }
 
 echo_result() {
-    # Print the result in white and status in green/red if color is enabled
+    # Print the result in white and status in green/red/yellow if color is enabled
     local status="$1"
 
     if [ "$MAKE_TERMINAL_COLORFUL" = true ]; then
@@ -688,6 +688,8 @@ echo_result() {
             printf "%s${BOLD}Results: (%s%s%s)\n" "${WHITE}" "${RESET}" "${BOLD}${GREEN}Passed${RESET}" "${RESET}"
         elif [ "$status" = "Failed" ]; then
             printf "%s${BOLD}Results: (%s%s%s)\n" "${WHITE}" "${RESET}" "${BOLD}${RED}Failed${RESET}" "${RESET}"
+        elif [ "$status" = "Manual Check" ]; then
+            printf "%s${BOLD}Results: (%s%s%s)\n" "${WHITE}" "${RESET}" "${BOLD}${LIGHT_YELLOW}Manual Check${RESET}" "${RESET}"
         fi
     else
         echo "Check Results: $status"
@@ -1037,7 +1039,17 @@ execute_and_log() {
         fi
     fi
 
-    # Log Passed/Failed results to log locations
+    # Check if this is a manual review check BEFORE logging
+    if [ "$result" = "Failed" ]; then
+        for manual_review in "${Manual_Review_Checks[@]}"; do
+            if [ "$check_name" == "$manual_review" ]; then
+                result="Manual Check"
+                break
+            fi
+        done
+    fi
+
+    # Log Passed/Failed/Manual Check results to log locations
     log_result "$check_name ($simple_name)" "$result"
 
     # Log the command output
@@ -1048,19 +1060,8 @@ execute_and_log() {
         update_plist "$check_name" "$simple_name" "$boolean_result"
     fi
 
-    # Proceed only if the result indicates a failure
+    # Proceed only if the result indicates a failure (and not a manual check)
     if [ "$result" = "Failed" ]; then
-        # Log the check as Manual if it matches the manual review checks
-        for manual_review in "${Manual_Review_Checks[@]}"; do
-            if [ "$check_name" == "$manual_review" ]; then
-                log_result "$check_name ($simple_name)" "Manual Check"
-                    if [ "$EXECUTE_FIX" = true ]; then
-                        echo_manual_review "Manual review or adjustments based on configuration"
-                    fi
-                return  # Exit the function after handling the manual review
-            fi
-        done
-
         # Proceed with existing logic only if EXECUTE_FIX is true
         if [ "$EXECUTE_FIX" = true ]; then
             if [ "$requires_mdm" = false ]; then
@@ -1071,6 +1072,10 @@ execute_and_log() {
             else
                 echo_failed_mdm "MDM configuration profile"
             fi
+        fi
+    elif [ "$result" = "Manual Check" ]; then
+        if [ "$EXECUTE_FIX" = true ]; then
+            echo_manual_review "Manual review or adjustments based on configuration"
         fi
     fi
 
@@ -1250,7 +1255,7 @@ simple_name="system_settings_screensaver_password_enforce"
 check_command="/usr/bin/osascript -l JavaScript << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.screensaver')\
 .objectForKey('askForPassword').js
-EOS"Results
+EOS"
 expected_result="true"
 severity="CAT II"
 fix_command="com.apple.screensaver"
@@ -1310,9 +1315,9 @@ check_name="APPL-26-000009"
 simple_name="Prevent_AdminHostInfo_Being_Avaible_At_LoginWindow"
 check_command="/usr/bin/osascript -l JavaScript << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.loginwindow')\
-.objectIsForcedForKey('AdminHostInfo')
+.integerForKey('AdminHostInfo')
 EOS"
-expected_result="false"
+expected_result="-1"
 severity="CAT II"
 fix_command="com.apple.loginwindow"
 requires_mdm="true"
@@ -1347,8 +1352,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000022"
 simple_name="pwpolicy_account_lockout_enforce"
-check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail -n +2 | /usr/bin/xmllint --xpath '//dict/key[text()=\"policyAttributeMaximumFailedAuthentications\"]/following-sibling::integer[1]/text()' - | /usr/bin/awk '{ if (\$1 <= 3) {print \"yes\"} else {print \"no\"}}'"
-expected_result="yes"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()=\"policyAttributeMaximumFailedAuthentications\"]/following-sibling::integer[1]/text()' - | /usr/bin/awk '{ if (\$1 <= 3) {print \"pass\"} else {print \"fail\"}}' | /usr/bin/uniq"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -1416,7 +1421,7 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000031"
 simple_name="audit_acls_folders_configure"
-check_command="/bin/ls -lde /var/audit | /usr/bin/awk '{print \$1}' | /usr/bin/grep -c ':'"
+check_command="/bin/ls -lde /var/audit | /usr/bin/awk '{print \$1}' | /usr/bin/grep -c \":\""
 expected_result="0"
 severity="CAT II"
 fix_command="/bin/chmod -N /var/audit"
@@ -1474,7 +1479,14 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000054"
 simple_name="os_sshd_fips_compliant"
-check_command='fips_sshd_config=("Ciphers aes128-gcm@openssh.com" "HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com" "HostKeyAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com" "KexAlgorithms ecdh-sha2-nistp256" "MACs hmac-sha2-256" "PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com" "CASignatureAlgorithms ecdsa-sha2-nistp256"); total=0; for config in "${fips_sshd_config[@]}"; do total=$(( $(/usr/sbin/sshd -G | /usr/bin/grep -i -c "$config") + total )); done; echo $total'
+check_command="fips_sshd_config=(\"Ciphers aes128-gcm@openssh.com\" \"HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\" \"KexAlgorithms ecdh-sha2-nistp256\" \"MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256\" \"PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\")
+total=0
+for config in \$fips_sshd_config; do
+total=\$(expr \$(/usr/sbin/sshd -G | /usr/bin/grep -i -c \"\$config\") + \$total)
+done
+
+echo \$total
+"
 expected_result="7"
 severity="CAT I"
 fix_command="complete_ssh_sshd_fix"
@@ -1504,8 +1516,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000060"
 simple_name="pwpolicy_account_lockout_timeout_enforce"
-check_command='/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail -n +2 | /usr/bin/xmllint --xpath '\''//dict/key[text()="autoEnableInSeconds"]/following-sibling::integer[1]/text()'\'' - | /usr/bin/awk '\''{ if ($1/60 >= 15 ) {print "yes"} else {print "no"}}'\'''
-expected_result="yes"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()=\"autoEnableInSeconds\"]/following-sibling::integer[1]/text()' - | /usr/bin/awk '{ if (\$1/60 >= 15 ) {print \"pass\"} else {print \"fail\"}}' | /usr/bin/uniq"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -1536,14 +1548,35 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000090"
 simple_name="os_unlock_active_user_session_disable"
-check_command="/usr/bin/security authorizationdb read system.login.screensaver 2>&1 | /usr/bin/grep -c '<string>authenticate-session-owner</string>'"
-expected_result="1"
+check_command="RESULT="FAIL"
+  SS_RULE=\$(/usr/bin/security -q authorizationdb read system.login.screensaver  2>&1 | /usr/bin/xmllint --xpath \"//dict/key[.='rule']/following-sibling::array[1]/string/text()\" -)
+
+  if [[ \"\${SS_RULE}\" == \"authenticate-session-owner\" ]]; then
+      RESULT=\"PASS\"
+  else
+      PSSO_CHECK=\$(/usr/bin/security -q authorizationdb read \"\$SS_RULE\"  2>&1 | /usr/bin/xmllint --xpath '//key[.=\"rule\"]/following-sibling::array[1]/string/text()' -)
+      if /usr/bin/grep -Fxq \"authenticate-session-owner\" <<<\"\$PSSO_CHECK\"; then
+          RESULT=\"PASS\"
+      fi
+  fi
+
+  echo \$RESULT"
+expected_result="PASS"
 severity="CAT II"
-fix_command="/usr/bin/security authorizationdb write system.login.screensaver \"authenticate-session-owner\""
-requires_mdm="false"
+fix_command="
+SS_RULE=\$(/usr/bin/security -q authorizationdb read system.login.screensaver 2>&1 | /usr/bin/xmllint --xpath \"//dict/key[.='rule']/following-sibling::array[1]/string/text()\" -)
+
+  if [[ \"\$SS_RULE\" == *psso* ]]; then
+      /usr/bin/security -q authorizationdb read psso-screensaver > \"/tmp/psso-screensaver-mscp.plist\"
+      /usr/bin/sed -i.bak 's/<string>authenticate-session-owner-or-admin<\/string>/<string>authenticate-session-owner<\/string>/' /tmp/psso-screensaver-mscp.plist
+      /usr/bin/security -q authorizationdb write psso-screensaver-mscp < /tmp/psso-screensaver-mscp.plist
+      /usr/bin/security -q authorizationdb write system.login.screensaver psso-screensaver-mscp 2>&1
+  else
+      /usr/bin/security -q authorizationdb write system.login.screensaver \"authenticate-session-owner\" 2>&1
+  fi"
+requires_mdm="PASS"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
-
 
 ##############################################
 check_name="APPL-26-000100"
@@ -1559,7 +1592,15 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000110"
 simple_name="os_ssh_server_alive_interval_configure"
-check_command='ret="pass"; for u in $(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '\''$2 > 500 {print $1}'\''); do sshCheck=$(/usr/bin/sudo -u $u /usr/bin/ssh -G . | /usr/bin/grep -c "^serveraliveinterval 900"); if [[ "$sshCheck" == "0" ]]; then ret="fail"; break; fi; done; /bin/echo $ret'
+check_command="ret=\"pass\"
+for u in \$(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '\$2 > 500 {print \$1}'); do
+sshCheck=\$(/usr/bin/sudo -u \$u /usr/bin/ssh -G . | /usr/bin/grep -c \"^serveraliveinterval 900\")
+if [[ \"\$sshCheck\" == \"0\" ]]; then
+ret=\"fail\"
+break
+fi
+done
+/bin/echo \$ret"
 expected_result="pass"
 severity="CAT II"
 fix_command="complete_ssh_sshd_fix"
@@ -1593,7 +1634,15 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000140"
 simple_name="os_ssh_server_alive_count_max_configure"
-check_command='ret="pass"; for u in $(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '\''$2 > 500 {print $1}'\''); do sshCheck=$(/usr/bin/sudo -u $u /usr/bin/ssh -G . | /usr/bin/grep -c "^serveralivecountmax 0"); if [[ "$sshCheck" == "0" ]]; then ret="fail"; break; fi; done; /bin/echo $ret'
+check_command="ret=\"pass\"
+for u in \$(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '\$2 > 500 {print \$1}'); do
+sshCheck=\$(/usr/bin/sudo -u \$u /usr/bin/ssh -G . | /usr/bin/grep -c \"^serveralivecountmax 0\")
+if [[ \"\$sshCheck\" == \"0\" ]]; then
+ret=\"fail\"
+break
+fi
+done
+/bin/echo \$ret"
 expected_result="pass"
 severity="CAT II"
 fix_command="complete_ssh_sshd_fix"
@@ -1644,18 +1693,19 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000190"
 simple_name="os_sudo_log_enforce"
-check_command="/usr/bin/awk -F':' '/^flags/ { print \$NF }' /etc/security/audit_control | /usr/bin/tr ',' '\n' | /usr/bin/grep -Ec 'ad'"
+check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c \"Log when a command is allowed by sudoers\""
 expected_result="1"
 severity="CAT II"
-fix_command="/usr/bin/grep -qE \"^flags.*[^-]ad\" /etc/security/audit_control || /usr/bin/sed -i.bak '/^flags/ s/\$/,ad/' /etc/security/audit_control; /usr/sbin/audit -s"
-requires_mdm="false"
+fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/^Defaults[[:blank:]]*\!log_allowed/s/^/# /' '{}' \;
+/bin/echo \"Defaults log_allowed\" >> /etc/sudoers.d/mscp"
+requires_mdm="1"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
 check_name="APPL-26-001001"
 simple_name="audit_flags_ad_configure"
-check_command="/usr/bin/awk -F':' '/^flags/ { print \$NF }' /etc/security/audit_control | /usr/bin/tr ',' '\n' | /usr/bin/grep -Ec '^lo'"
+check_command="/usr/bin/awk -F':' '/^flags/ { print \$NF }' /etc/security/audit_control | /usr/bin/tr ',' '\n' | /usr/bin/grep -Ec 'ad'"
 expected_result="1"
 severity="CAT II"
 fix_command="/usr/bin/grep -qE \"^flags.*[^-]lo\" /etc/security/audit_control || /usr/bin/sed -i.bak '/^flags/ s/\$/,lo/' /etc/security/audit_control; /usr/sbin/audit -s"
@@ -1677,31 +1727,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-001003"
 simple_name="audit_auditd_enabled"
-check_command='LAUNCHD_RUNNING=$(/bin/launchctl list | /usr/bin/grep -c com.apple.auditd); if [[ $LAUNCHD_RUNNING -eq 1 ]] && [[ -e /etc/security/audit_control ]]; then echo "pass"; else echo "fail"; fi'
+check_command="LAUNCHD_RUNNING=\$(/bin/launchctl print system | /usr/bin/grep -c -E '\tcom.apple.auditd')
+AUDITD_RUNNING=\$(/usr/sbin/audit -c | /usr/bin/grep -c \"AUC_AUDITING\")
+if [[ \$LAUNCHD_RUNNING == 1 ]] && [[ -e /etc/security/audit_control ]] && [[ \$AUDITD_RUNNING == 1 ]]; then
+  echo \"pass\"
+else
+  echo \"fail\"
+fi"
 expected_result="pass"
 severity="CAT II"
-fix_command="LAUNCHD_RUNNING=\$(/bin/launchctl list | /usr/bin/grep -c com.apple.auditd)
-
-if [[ ! \$LAUNCHD_RUNNING == 1 ]]; then
-  /bin/launchctl load -w /System/Library/LaunchDaemons/com.apple.auditd.plist
+fix_command="if [[ ! -e /etc/security/audit_control ]] && [[ -e /etc/security/audit_control.example ]];then
+  /bin/cp /etc/security/audit_control.example /etc/security/audit_control
 fi
 
-if [[ ! -e /etc/security/audit_control ]] && [[ -e /etc/security/audit_control.example ]];then
-  /bin/cp /etc/security/audit_control.example /etc/security/audit_control
-else
-  /usr/bin/touch /etc/security/audit_control
-fi"
-requires_mdm="false"
-
-execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
-
-##############################################
-check_name="APPL-26-001010"
-simple_name="audit_failure_halt"
-check_command="/usr/bin/awk -F':' '/^policy/ {print \$NF}' /etc/security/audit_control | /usr/bin/tr ',' '\n' | /usr/bin/grep -Ec 'ahlt'"
-expected_result="1"
-severity="CAT II"
-fix_command="/usr/bin/sed -i.bak 's/^policy.*/policy: ahlt,argv/' /etc/security/audit_control; /usr/sbin/audit -s"
+/bin/launchctl enable system/com.apple.auditd
+/bin/launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.auditd.plist
+/usr/sbin/audit -i"
 requires_mdm="false"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -1997,8 +2038,13 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002003"
 simple_name="os_nfsd_disable"
-check_command="/bin/launchctl print-disabled system | /usr/bin/grep -c '\"com.apple.nfsd\" => disabled'"
-expected_result="1"
+check_command="isDisabled=\$(/sbin/nfsd status | /usr/bin/awk '/nfsd service/ {print \$NF}') && \
+if [[ \"\$isDisabled\" == \"disabled\" ]] && [[ -z \$(/usr/bin/pgrep nfsd) ]]; then \
+  echo \"pass\" \
+else \
+  echo \"fail\" \
+fi"
+expected_result="pass"
 severity="CAT II"
 fix_command="/bin/launchctl disable system/com.apple.nfsd"
 requires_mdm="false"
@@ -2039,10 +2085,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002006"
 simple_name="os_uucp_disable"
-check_command="/bin/launchctl print-disabled system | /usr/bin/grep -c '\"com.apple.uucp\" => disabled'"
-expected_result="1"
+check_command="result=\"FAIL\"
+enabled=\$(/bin/launchctl print-disabled system | /usr/bin/grep '\"com.apple.uucp\" => enabled')
+running=\$(/bin/launchctl print system/com.apple.uucp 2>/dev/null)
+
+if [[ -z \"\$running\" ]] && [[ -z \"\$enabled\" ]]; then
+  result=\"PASS\"
+elif [[ -n \"\$running\" ]]; then
+  result=\"\$result RUNNING\"
+elif [[ -n \"\$enabled\" ]]; then
+  result=\"\$result ENABLED\"
+fi
+echo \$result"
+expected_result="PASS"
 severity="CAT II"
-fix_command="/bin/launchctl disable system/com.apple.uucp"
+fix_command="/bin/launchctl bootout system/com.apple.uucp
+/bin/launchctl disable system/com.apple.uucp"
 requires_mdm="false"
 
 
@@ -2066,10 +2124,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002008"
 simple_name="os_httpd_disable"
-check_command="/bin/launchctl print-disabled system | /usr/bin/grep -c '\"org.apache.httpd\" => disabled'"
-expected_result="1"
+check_command="result=\"FAIL\"
+enabled=\$(/bin/launchctl print-disabled system | /usr/bin/grep '\"org.apache.httpd\" => enabled')
+running=\$(/bin/launchctl print system/org.apache.httpd 2>/dev/null)
+
+if [[ -z \"\$running\" ]] && [[ -z \"\$enabled\" ]]; then
+  result=\"PASS\"
+elif [[ -n \"\$running\" ]]; then
+  result=\"\$result RUNNING\"
+elif [[ -n \"\$enabled\" ]]; then
+  result=\"\$result ENABLED\"
+fi
+echo \$result"
+expected_result="PASS"
 severity="CAT II"
-fix_command="/bin/launchctl disable system/org.apache.httpd"
+fix_command="/usr/sbin/apachectl stop 2>/dev/null
+/bin/launchctl disable system/org.apache.httpd"
 requires_mdm="false"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -2184,7 +2254,6 @@ severity="CAT II"
 fix_command="com.apple.applicationaccess"
 requires_mdm="true"
 
-
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
@@ -2280,9 +2349,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002035"
 simple_name="os_appleid_prompt_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipCloudSetup').js
+.objectForKey('SkipSetupItems').containsObject("AppleID")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -2294,9 +2363,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002036"
 simple_name="os_privacy_setup_prompt_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipPrivacySetup').js
+.objectForKey('SkipSetupItems').containsObject("Privacy")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -2308,9 +2377,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002037"
 simple_name="os_icloud_storage_prompt_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipiCloudStorageSetup').js
+.objectForKey('skipSetupItems').containsObject("iCloudStorage")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -2323,10 +2392,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002038"
 simple_name="os_tftpd_disable"
-check_command="/bin/launchctl print-disabled system | /usr/bin/grep -c '\"com.apple.tftpd\" => disabled'"
-expected_result="1"
+check_command="result=\"FAIL\"
+enabled=\$(/bin/launchctl print-disabled system | /usr/bin/grep '\"com.apple.tftpd\" => enabled')
+running=\$(/bin/launchctl print system/com.apple.tftpd 2>/dev/null)
+
+if [[ -z \"\$running\" ]] && [[ -z \"\$enabled\" ]]; then
+  result=\"PASS\"
+elif [[ -n \"\$running\" ]]; then
+  result=\"\$result RUNNING\"
+elif [[ -n \"\$enabled\" ]]; then
+  result=\"\$result ENABLED\"
+fi
+echo \$result"
+expected_result="PASS"
 severity="CAT I"
-fix_command="/bin/launchctl disable system/com.apple.tftpd"
+fix_command="/bin/launchctl bootout system/com.apple.tftpd 
+/bin/launchctl disable system/com.apple.tftpd"
 requires_mdm="false"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -2334,9 +2415,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002039"
 simple_name="os_siri_prompt_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipSiriSetup').js
+.objectForKey('SkipSetupItems').containsObject("Siri")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -2404,8 +2485,19 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002050"
 simple_name="system_settings_screen_sharing_disable"
-check_command="/bin/launchctl print-disabled system | /usr/bin/grep -c '\"com.apple.screensharing\" => disabled'"
-expected_result="1"
+check_command="result=\"FAIL\"
+enabled=\$(/bin/launchctl print-disabled system | /usr/bin/grep '\"com.apple.screensharing\" => enabled')
+running=\$(/bin/launchctl print system/com.apple.screensharing 2>/dev/null)
+
+if [[ -z \"\$running\" ]] && [[ -z \"\$enabled\" ]]; then
+  result=\"PASS\"
+elif [[ -n \"\$running\" ]]; then
+  result=\"\$result RUNNING\"
+elif [[ -n \"\$enabled\" ]]; then
+  result=\"\$result ENABLED\"
+fi
+echo \$result"
+expected_result="PASS"
 severity="CAT II"
 fix_command="/bin/launchctl disable system/com.apple.screensharing"
 requires_mdm="false"
@@ -2437,11 +2529,23 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002060"
 simple_name="system_settings_gatekeeper_identified_developers_allowed"
-check_command="/usr/sbin/spctl --status --verbose | /usr/bin/grep -c \"developer id enabled\""
-expected_result="1"
+check_command="/usr/bin/osascript -l JavaScript << EOS
+function run() {
+let pref1 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.systempolicy.control')\
+.objectForKey('AllowIdentifiedDevelopers'))
+let pref2 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.systempolicy.control')\
+.objectForKey('EnableAssessment'))
+if ( pref1 == true && pref2 == true ) {
+return("true")
+} else {
+return("false")
+}
+}
+EOS"
+expected_result="true"
 severity="CAT I"
-fix_command="/usr/sbin/spctl --global-enable; /usr/sbin/spctl --enable"
-requires_mdm="false"
+fix_command="com.apple.systempolicy.control"
+requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
@@ -2485,10 +2589,13 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002064"
 simple_name="os_gatekeeper_enable"
-check_command="/usr/sbin/spctl --status | /usr/bin/grep -c \"assessments enabled\""
-expected_result="1"
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.systempolicy.control')\
+.objectForKey('EnableAssessment').js
+EOS"
+expected_result="true"
 severity="CAT I"
-fix_command="/usr/sbin/spctl --global-enable"
+fix_command="com.apple.systempolicy.control"
 requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -2531,6 +2638,15 @@ for section in \${authDBs[@]}; do
   if [[ \$(/usr/bin/security -q authorizationdb read \"\$section\" | /usr/bin/xmllint -xpath 'name(//*[contains(text(), \"shared\")]/following-sibling::*[1])' -) != \"false\" ]]; then
     result=\"0\"
   fi
+  if [[ \$(/usr/bin/security -q authorizationdb read \"\$section\" | /usr/bin/xmllint -xpath '//*[contains(text(), \"group\")]/following-sibling::*[1]/text()' -) != \"admin\" ]]; then
+    result=\"0\"
+  fi
+  if [[ \$(/usr/bin/security -q authorizationdb read \"\$section\" | /usr/bin/xmllint -xpath 'name(//*[contains(text(), \"authenticate-user\")]/following-sibling::*[1])' -) != \"true\" ]]; then
+    result=\"0\"
+  fi
+  if [[ \$(/usr/bin/security -q authorizationdb read \"\$section\" | /usr/bin/xmllint -xpath 'name(//*[contains(text(), \"session-owner\")]/following-sibling::*[1])' -) != \"false\" ]]; then
+    result=\"0\"
+  fi
 done
 echo \$result"
 expected_result="1"
@@ -2538,13 +2654,43 @@ severity="CAT I"
 fix_command="authDBs=(\"system.preferences\" \"system.preferences.energysaver\" \"system.preferences.network\" \"system.preferences.printing\" \"system.preferences.sharing\" \"system.preferences.softwareupdate\" \"system.preferences.startupdisk\" \"system.preferences.timemachine\")
 
 for section in \${authDBs[@]}; do
-/usr/bin/security -q authorizationdb read \"\$section\" > \"/tmp/\$section.plist\"
-key_value=\$(/usr/libexec/PlistBuddy -c \"Print :shared\" \"/tmp/\$section.plist\" 2>&1)
-if [[ \"\$key_value\" == *\"Does Not Exist\"* ]]; then
-  /usr/libexec/PlistBuddy -c \"Add :shared bool false\" \"/tmp/\$section.plist\"
-else
-  /usr/libexec/PlistBuddy -c \"Set :shared false\" \"/tmp/\$section.plist\"
-fi
+  /usr/bin/security -q authorizationdb read \"\$section\" > \"/tmp/\$section.plist\"
+
+  class_key_value=\$(/usr/libexec/PlistBuddy -c \"Print :class\" \"/tmp/\$section.plist\" 2>&1)
+  if [[ \"\$class_key_value\" == *\"Does Not Exist\"* ]]; then
+    /usr/libexec/PlistBuddy -c \"Add :class string user\" \"/tmp/\$section.plist\"
+  else
+    /usr/libexec/PlistBuddy -c \"Set :class user\" \"/tmp/\$section.plist\"
+  fi
+
+  key_value=\$(/usr/libexec/PlistBuddy -c \"Print :shared\" \"/tmp/\$section.plist\" 2>&1)  
+  if [[ \"\$key_value\" == *\"Does Not Exist\"* ]]; then
+    /usr/libexec/PlistBuddy -c \"Add :shared bool false\" \"/tmp/\$section.plist\"
+  else
+    /usr/libexec/PlistBuddy -c \"Set :shared false\" \"/tmp/\$section.plist\"
+  fi
+
+  auth_user_key=\$(/usr/libexec/PlistBuddy -c \"Print :authenticate-user\" \"/tmp/\$section.plist\" 2>&1)  
+  if [[ \"\$auth_user_key\" == *\"Does Not Exist\"* ]]; then
+    /usr/libexec/PlistBuddy -c \"Add :authenticate-user bool true\" \"/tmp/\$section.plist\"
+  else
+    /usr/libexec/PlistBuddy -c \"Set :authenticate-user true\" \"/tmp/\$section.plist\"
+  fi
+
+  session_owner_key=\$(/usr/libexec/PlistBuddy -c \"Print :session-owner\" \"/tmp/\$section.plist\" 2>&1)  
+  if [[ \"\$session_owner_key\" == *\"Does Not Exist\"* ]]; then
+    /usr/libexec/PlistBuddy -c \"Add :session-owner bool false\" \"/tmp/\$section.plist\"
+  else
+    /usr/libexec/PlistBuddy -c \"Set :session-owner false\" \"/tmp/\$section.plist\"
+  fi
+
+  group_key=\$(/usr/libexec/PlistBuddy -c \"Print :group\" \"/tmp/\$section.plist\" 2>&1)
+  if [[ \"\$group_key\" == *\"Does Not Exist\"* ]]; then
+    /usr/libexec/PlistBuddy -c \"Add :group string admin\" \"/tmp/\$section.plist\"
+  else
+    /usr/libexec/PlistBuddy -c \"Set :group admin\" \"/tmp/\$section.plist\"
+  fi
+
   /usr/bin/security -q authorizationdb write \"\$section\" < \"/tmp/\$section.plist\"
 done"
 requires_mdm="false"
@@ -2582,24 +2728,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-002100"
 simple_name="system_settings_media_sharing_disabled"
-check_command="//usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript << EOS
 function run() {
-  let pref1 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.preferences.sharing.SharingPrefsExtension')\
-  .objectForKey('homeSharingUIStatus'))
-  let pref2 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.preferences.sharing.SharingPrefsExtension')\
-  .objectForKey('legacySharingUIStatus'))
-  let pref3 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.preferences.sharing.SharingPrefsExtension')\
-  .objectForKey('mediaSharingUIStatus'))
-  if ( pref1 == 0 && pref2 == 0 && pref3 == 0 ) {
-    return("true")
-  } else {
-    return("false")
-  }
+let pref1 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+.objectForKey('allowMediaSharing'))
+let pref2 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+.objectForKey('allowMediaSharingModification'))
+if ( pref1 == false && pref2 == false ) {
+return("true")
+} else {
+return("false")
+}
 }
 EOS"
 expected_result="true"
 severity="CAT II"
-fix_command="com.apple.preferences.sharing.SharingPrefsExtension"
+fix_command="com.apple.applicationaccess"
 requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -2627,17 +2771,6 @@ expected_result="false"
 severity="CAT II"
 fix_command="com.apple.applicationaccess"
 requires_mdm="true"
-
-execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
-
-##############################################
-check_name="APPL-26-002130"
-simple_name="system_settings_cd_dvd_sharing_disable"
-check_command="/usr/bin/pgrep -q ODSAgent; /bin/echo \$?"
-expected_result="1"
-severity="CAT II"
-fix_command="/bin/launchctl unload /System/Library/LaunchDaemons/com.apple.ODSAgent.plist"
-requires_mdm="false"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
@@ -2702,22 +2835,22 @@ check_name="APPL-26-002180"
 simple_name="system_settings_find_my_disable"
 check_command="/usr/bin/osascript -l JavaScript << EOS
 function run() {
-  let pref1 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+let pref1 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
 .objectForKey('allowFindMyDevice'))
-  let pref2 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
+let pref2 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
 .objectForKey('allowFindMyFriends'))
-  let pref3 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.icloud.managed')\
+let pref3 = ObjC.unwrap($.NSUserDefaults.alloc.initWithSuiteName('com.apple.icloud.managed')\
 .objectForKey('DisableFMMiCloudSetting'))
-  if ( pref1 == false && pref2 == false && pref3 == true ) {
-    return("true")
-  } else {
-    return("false")
-  }
+if ( pref1 == false && pref2 == false && pref3 == true ) {
+return("true")
+} else {
+return("false")
+}
 }
 EOS"
 expected_result="true"
 severity="CAT II"
-fix_command="com.apple.applicationaccess"
+fix_command="com.apple.applicationaccess && com.apple.icloud.managed"
 requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -2771,7 +2904,7 @@ check_command="/usr/bin/osascript -l JavaScript << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.applicationaccess')\
 .objectForKey('allowDictation').js
 EOS"
-expected_result="true"
+expected_result="false"
 severity="CAT II"
 fix_command="com.apple.applicationaccess"
 requires_mdm="true"
@@ -2865,8 +2998,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-003008"
 simple_name="pwpolicy_max_lifetime_enforce"
-check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()=\"policyAttributeExpiresEveryNDays\"]/following-sibling::*[1]/text()' -"
-expected_result="60"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()="policyAttributeExpiresEveryNDays"]/following-sibling::*[1]/text()' - | /usr/bin/awk '{ if (\$1 <= 60 ) {print "pass"} else {print "fail"}}' | /usr/bin/uniq"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -2876,8 +3009,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-003010"
 simple_name="pwpolicy_minimum_length_enforce"
-check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath 'boolean(//*[contains(text(),\"policyAttributePassword matches '\''.{14,}'\''\")])' -"
-expected_result="true"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2>/dev/null | tail +2 | grep -oE \"policyAttributePassword matches '.\{[0-9]+,\" | awk -F'[{,]' -v ODV=14 '{if (\$2 > max) max=\$2} END {print (max >= ODV) ? \"pass\" : \"fail\"}'"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -2887,8 +3020,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-003011"
 simple_name="pwpolicy_special_character_enforce"
-check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath 'boolean(//*[contains(text(),\"policyAttributePassword matches '\''(.*[^a-zA-Z0-9].*){1,}'\''\")])' -"
-expected_result="true"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2>/dev/null | /usr/bin/tail -n +2 | /usr/bin/xmllint --xpath \"//string[contains(text(), \"policyAttributePassword matches '(.*[^a-zA-Z0-9].*){\")]\" - 2>/dev/null | /usr/bin/awk -F\"{|}\" '{if (\$2 >= 1) {print \"pass\"} else {print \"fail\"}}'"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -2910,21 +3043,16 @@ requires_mdm="true"
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
-check_name="APPL-26-003013"
-simple_name="os_firmware_password_require"
-check_command="/usr/sbin/firmwarepasswd -check | /usr/bin/grep -c \"Password Enabled: Yes\""
-expected_result="1"
-severity="CAT II"
-fix_command=""
-requires_mdm="false"
-
-execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
-
-##############################################
 check_name="APPL-26-003014"
 simple_name="os_password_hint_remove"
-check_command="/usr/bin/dscl . -list /Users hint | /usr/bin/awk '{print \$2}' | /usr/bin/wc -l | /usr/bin/xargs"
-expected_result="0"
+check_command="HINT=$(/usr/bin/dscl . -list /Users hint | /usr/bin/awk '{ print $2 }')
+
+if [ -z "$HINT" ]; then
+echo "PASS"
+else
+echo "FAIL"
+fi"
+expected_result="PASS"
 severity="CAT II"
 fix_command="for u in \$(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '\$2 > 500 {print \$1}'); do
   /usr/bin/dscl . -delete /Users/\$u hint
@@ -3008,8 +3136,8 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-003070"
 simple_name="pwpolicy_minimum_lifetime_enforce"
-check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()="policyAttributeMinimumLifetimeHours"]/following-sibling::integer[1]/text()' - | /usr/bin/awk '{ if (\$1 >= 24 ) {print \"yes\"} else {print \"no\"}}'"
-expected_result="yes"
+check_command="/usr/bin/pwpolicy -getaccountpolicies 2> /dev/null | /usr/bin/tail +2 | /usr/bin/xmllint --xpath '//dict/key[text()=\"policyAttributeMinimumLifetimeHours\"]/following-sibling::integer[1]/text()' - | /usr/bin/awk '{ if (\$1 >= 24 ) {print \"pass\"} else {print \"fail\"}}'"
+expected_result="pass"
 severity="CAT II"
 fix_command="com.apple.mobiledevice.passwordpolicy"
 requires_mdm="true"
@@ -3050,6 +3178,17 @@ requires_mdm="false"
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
+check_name="APPL-26-004022"
+simple_name="reauthenticate_when_using_sudo"
+check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c \"Authentication timestamp timeout: 0.0 minutes\""
+expected_result="1"
+severity="CAT II"
+fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/timestamp_timeout/d' '{}' \; && /bin/echo \"Defaults timestamp_timeout=0\" >> /etc/sudoers.d/mscp"
+requires_mdm="false"
+
+execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
+
+##############################################
 check_name="APPL-26-004030"
 simple_name="os_newsyslog_files_owner_group_configure"
 check_command="/usr/bin/stat -f '%Su:%Sg:%N' \$(/usr/bin/grep -v '^#' /etc/newsyslog.conf | /usr/bin/awk '{ print \$1 }') 2> /dev/null | /usr/bin/awk '!/^root:wheel:/{print \$1}' | /usr/bin/wc -l | /usr/bin/tr -d ' '"
@@ -3083,6 +3222,18 @@ requires_mdm="false"
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
 ##############################################
+check_name="APPL-26-004060"
+simple_name="os_install_log_timestamp_configure"
+check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/awk -F\": \" '/Type of authentication timestamp record/{print \$2}'"
+expected_result="tty"
+severity="CAT II"
+fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/timestamp_type/d; /!tty_tickets/d' '{}' \;"
+requires_mdm="false"
+
+execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
+
+
+##############################################
 check_name="APPL-26-005001"
 simple_name="os_sip_enable"
 check_command="/usr/bin/csrutil status | /usr/bin/grep -c 'System Integrity Protection status: enabled.'"
@@ -3109,7 +3260,7 @@ else
 fi"
 expected_result="1"
 severity="CAT I"
-fix_command="com.apple.mobiledevice.passwordpolicy"
+fix_command="com.apple.MCX"
 requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
@@ -3117,23 +3268,14 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-005050"
 simple_name="system_settings_firewall_enable"
-check_command="profile=\"\$(/usr/bin/osascript -l JavaScript << EOS
-\$.NSUserDefaults.alloc.initWithSuiteName('com.apple.security.firewall')\
+check_command="/usr/bin/osascript -l JavaScript << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.security.firewall')\
 .objectForKey('EnableFirewall').js
-EOS
-)\"
-
-plist=\"\$(/usr/bin/defaults read /Library/Preferences/com.apple.alf globalstate 2>/dev/null)\"
-
-if [[ \"\$profile\" == \"true\" ]] && [[ \"\$plist\" =~ [1,2] ]]; then
-  echo \"true\"
-else
-  echo \"false\"
-fi"
+EOS"
 expected_result="true"
 severity="CAT II"
-fix_command="/usr/bin/defaults write /Library/Preferences/com.apple.alf globalstate -int 1"
-requires_mdm="true" #check command looks for configuration profile
+fix_command="com.apple.security.firewall"
+requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
 
@@ -3154,9 +3296,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-005054"
 simple_name="os_touchid_prompt_disable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipTouchIDSetup').js
+.objectForKey('SkipSetupItems').containsObject("Biometric")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -3168,9 +3310,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-005055"
 simple_name="os_skip_screen_time_prompt_enable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipScreenTime').js
+.objectForKey('SkipSetupItems').containsObject("ScreenTime")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -3182,9 +3324,9 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-005056"
 simple_name="os_skip_unlock_with_watch_enable"
-check_command="/usr/bin/osascript -l JavaScript << EOS
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('SkipUnlockWithWatch').js
+.objectForKey('SkipSetupItems').containsObject("WatchMigration")
 EOS"
 expected_result="true"
 severity="CAT II"
@@ -3238,7 +3380,7 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-005070"
 simple_name="os_authenticated_root_enable"
-check_command="/usr/bin/csrutil authenticated-root | /usr/bin/grep -c 'enabled'"
+check_command="/usr/libexec/mdmclient QuerySecurityInfo 2>/dev/null | /usr/bin/grep -c \"AuthenticatedRootVolumeEnabled = 1;\""
 expected_result="1"
 severity="CAT II"
 fix_command="/usr/bin/csrutil authenticated-root enable"
@@ -3376,6 +3518,20 @@ EOS"
 expected_result="false"
 severity="CAT II"
 fix_command="com.apple.applicationaccess"
+requires_mdm="true"
+
+execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
+
+##############################################
+check_name="APPL-26-005170"
+simple_name="os_apple_intelligence_disable"
+check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
+$.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
+.objectForKey('SkipSetupItems').containsObject("Intelligence")
+EOS"
+expected_result="false"
+severity="CAT II"
+fix_command="com.apple.SetupAssistant.managed"
 requires_mdm="true"
 
 execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name" "$severity" "$fix_command" "$requires_mdm"
