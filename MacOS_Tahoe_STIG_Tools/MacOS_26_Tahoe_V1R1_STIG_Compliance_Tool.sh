@@ -1700,7 +1700,7 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000190"
 simple_name="os_sudo_log_enforce"
-check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c "Log when a command is allowed by sudoers""
+check_command="/usr/bin/sudo -V | /usr/bin/grep -c \"Log when a command is allowed by sudoers"\"
 expected_result="1"
 severity="CAT II"
 fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/^Defaults[[:blank:]]*\!log_allowed/s/^/# /' '{}' \;
