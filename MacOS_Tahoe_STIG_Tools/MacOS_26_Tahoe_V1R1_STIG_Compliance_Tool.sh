@@ -1497,15 +1497,22 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000057"
 simple_name="os_ssh_fips_compliant"
-check_command="fips_ssh_config='Host *
-Ciphers aes128-gcm@openssh.com
-HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-HostKeyAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-KexAlgorithms ecdh-sha2-nistp256
-MACs hmac-sha2-256
-PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-CASignatureAlgorithms ecdsa-sha2-nistp256'
-/usr/bin/grep -c '$fips_ssh_config' /etc/ssh/ssh_config.d/fips_ssh_config"
+check_command="fips_ssh_config=("Ciphers aes128-gcm@openssh.com" "HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com" "HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com" "KexAlgorithms ecdh-sha2-nistp256" "MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256" "PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com" "CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com")
+total=0
+ret="pass"
+for config in $fips_ssh_config; do
+if [[ "$ret" == "fail" ]]; then
+break
+fi
+for u in $(/usr/bin/dscl . list /users shell | /usr/bin/egrep -v '(^_)|(root)|(/usr/bin/false)' | /usr/bin/awk '{print $1}'); do
+sshCheck=$(/usr/bin/sudo -u $u /usr/bin/ssh -G . | /usr/bin/grep -ci "$config")
+if [[ "$sshCheck" == "0" ]]; then
+ret="fail"
+break
+fi
+done
+done
+echo $ret"
 expected_result="8"
 severity="CAT I"
 fix_command="complete_ssh_sshd_fix"
@@ -1693,7 +1700,7 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000190"
 simple_name="os_sudo_log_enforce"
-check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c \"Log when a command is allowed by sudoers\""
+check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c "Log when a command is allowed by sudoers""
 expected_result="1"
 severity="CAT II"
 fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/^Defaults[[:blank:]]*\!log_allowed/s/^/# /' '{}' \;
@@ -2379,7 +2386,7 @@ check_name="APPL-26-002037"
 simple_name="os_icloud_storage_prompt_disable"
 check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('skipSetupItems').containsObject("iCloudStorage")
+.objectForKey('SkipSetupItems').containsObject("iCloudStorage")
 EOS"
 expected_result="true"
 severity="CAT II"
