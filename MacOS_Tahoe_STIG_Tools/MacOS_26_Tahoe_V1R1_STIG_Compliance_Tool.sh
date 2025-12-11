@@ -15,6 +15,10 @@
 # Version 1.0 (12/05/2025)
 # - Based off Offical Tahoe STIGS V1R1
 # - Initial script creation
+# Version 1.1 (12/05/2025)
+# - Fixed APPL-26-000057 & APPL-26-000054
+# - Fixed APPL-26-000190 Typo
+# - Fixed APPL-26-002037 Typo
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -101,21 +105,21 @@ Manual_Review_Checks=("APPL-26-002022" "APPL-26-000012" "APPL-26-003001" "APPL-2
 # V-259438  limit SSHD to FIPS (May need to add more approved FIPS Algorithms)
 fips_sshd_config="Ciphers aes128-gcm@openssh.com
 HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-HostKeyAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
+HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com
 KexAlgorithms ecdh-sha2-nistp256
-MACs hmac-sha2-256
-PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-CASignatureAlgorithms ecdsa-sha2-nistp256"
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256
+PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com
+CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com"
 
 # V-259439  limit SSH to FIPS (May need to add more approved FIPS Algorithms)
 fips_ssh_config="Host *
 Ciphers aes128-gcm@openssh.com,aes256-ctr
 HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-HostKeyAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
+HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com
 KexAlgorithms ecdh-sha2-nistp256
-MACs hmac-sha2-256
-PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-CASignatureAlgorithms ecdsa-sha2-nistp256"
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256
+PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com
+CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com"
 
 
 ####################################################################################################
@@ -1481,7 +1485,7 @@ check_name="APPL-26-000054"
 simple_name="os_sshd_fips_compliant"
 check_command="fips_sshd_config=(\"Ciphers aes128-gcm@openssh.com\" \"HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\" \"KexAlgorithms ecdh-sha2-nistp256\" \"MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256\" \"PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\")
 total=0
-for config in \$fips_sshd_config; do
+for config in \"\${fips_sshd_config[@]}\"; do
 total=\$(expr \$(/usr/sbin/sshd -G | /usr/bin/grep -i -c \"\$config\") + \$total)
 done
 
@@ -1497,16 +1501,23 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000057"
 simple_name="os_ssh_fips_compliant"
-check_command="fips_ssh_config='Host *
-Ciphers aes128-gcm@openssh.com
-HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-HostKeyAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-KexAlgorithms ecdh-sha2-nistp256
-MACs hmac-sha2-256
-PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com
-CASignatureAlgorithms ecdsa-sha2-nistp256'
-/usr/bin/grep -c '$fips_ssh_config' /etc/ssh/ssh_config.d/fips_ssh_config"
-expected_result="8"
+check_command="fips_ssh_config=(\"Ciphers aes128-gcm@openssh.com\" \"HostbasedAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"HostKeyAlgorithms ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\" \"KexAlgorithms ecdh-sha2-nistp256\" \"MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-256\" \"PubkeyAcceptedAlgorithms ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,sk-ecdsa-sha2-nistp256-cert-v01@openssh.com\" \"CASignatureAlgorithms ecdsa-sha2-nistp256,sk-ecdsa-sha2-nistp256@openssh.com\")
+total=0
+ret=\"pass\"
+for config in \$fips_ssh_config; do
+if [[ \"\$ret\" == \"fail\" ]]; then
+break
+fi
+for u in \$(/usr/bin/dscl . list /users shell | /usr/bin/egrep -v '(^_)|(root)|(/usr/bin/false)' | /usr/bin/awk '{print \$1}'); do
+sshCheck=\$(/usr/bin/sudo -u \$u /usr/bin/ssh -G . | /usr/bin/grep -ci \"\$config\")
+if [[ \"\$sshCheck\" == \"0\" ]]; then
+ret=\"fail\"
+break
+fi
+done
+done
+echo \$ret"
+expected_result="pass"
 severity="CAT I"
 fix_command="complete_ssh_sshd_fix"
 requires_mdm="false"
@@ -1693,7 +1704,7 @@ execute_and_log "$check_name" "$check_command" "$expected_result" "$simple_name"
 ##############################################
 check_name="APPL-26-000190"
 simple_name="os_sudo_log_enforce"
-check_command="/usr/bin/sudo /usr/bin/sudo -V | /usr/bin/grep -c \"Log when a command is allowed by sudoers\""
+check_command="/usr/bin/sudo -V | /usr/bin/grep -c \"Log when a command is allowed by sudoers\""
 expected_result="1"
 severity="CAT II"
 fix_command="/usr/bin/find /etc/sudoers* -type f -exec sed -i '' '/^Defaults[[:blank:]]*\!log_allowed/s/^/# /' '{}' \;
@@ -2379,7 +2390,7 @@ check_name="APPL-26-002037"
 simple_name="os_icloud_storage_prompt_disable"
 check_command="/usr/bin/osascript -l JavaScript 2>/dev/null << EOS
 $.NSUserDefaults.alloc.initWithSuiteName('com.apple.SetupAssistant.managed')\
-.objectForKey('skipSetupItems').containsObject("iCloudStorage")
+.objectForKey('SkipSetupItems').containsObject("iCloudStorage")
 EOS"
 expected_result="true"
 severity="CAT II"
