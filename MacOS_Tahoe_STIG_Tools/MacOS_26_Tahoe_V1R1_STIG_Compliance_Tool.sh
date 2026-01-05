@@ -19,6 +19,8 @@
 # - Fixed APPL-26-000057 & APPL-26-000054
 # - Fixed APPL-26-000190 Typo
 # - Fixed APPL-26-002037 Typo
+# Version 1.2 (01/15/2026)
+# - Fixed channeltimeout typo in complete_ssh_sshd_fix function
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -353,8 +355,8 @@ complete_ssh_sshd_fix() {
     mscp_sshd="passwordauthentication no
     kbdinteractiveauthentication no
     banner /etc/banner
-    channeltimeout session:*=900
-    clientalivecountmax 1
+    channeltimeout 900
+    clientalivecountmax 0
     clientaliveinterval 900
     logingracetime 30
     permitrootlogin no
