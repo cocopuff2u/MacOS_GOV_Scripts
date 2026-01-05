@@ -355,7 +355,7 @@ complete_ssh_sshd_fix() {
     mscp_sshd="passwordauthentication no
     kbdinteractiveauthentication no
     banner /etc/banner
-    channeltimeout 900
+    channeltimeout session:*=900
     clientalivecountmax 0
     clientaliveinterval 900
     logingracetime 30
