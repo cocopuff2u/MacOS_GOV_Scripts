@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ####################################################################################################
 #
 # MacOS STIG Viewer V2 Setup
@@ -9,6 +9,8 @@
 #
 # To run script open terminal and type 'sudo bash /path/to/script.sh'
 #
+# Jamf Usage: Pass "install" or "uninstall" as Parameter 4
+#
 # https://github.com/cocopuff2u
 #
 ####################################################################################################
@@ -16,6 +18,7 @@
 #   History
 #
 #  1.0 08/20/24 - Original
+#  1.1 01/16/26 - Jamf compatibility fixes
 #
 ####################################################################################################
 # Configuration Section
@@ -40,10 +43,34 @@ SYSTEM_ICON="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/To
 #
 ####################################################################################################
 
+# Get the currently logged-in user (works when running as root via Jamf)
+CURRENT_USER=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /loginwindow/ { print $3 }')
+if [ -z "$CURRENT_USER" ] || [ "$CURRENT_USER" = "root" ]; then
+    CURRENT_USER=$(stat -f%Su /dev/console)
+fi
+CURRENT_USER_HOME=$(dscl . -read /Users/"$CURRENT_USER" NFSHomeDirectory | awk '{print $2}')
+
+# Jamf passes parameters starting at $4; support both direct CLI and Jamf usage
+# $1 = mount point (Jamf) or action (CLI)
+# $4 = action (Jamf)
+if [ -n "$4" ]; then
+    # Running via Jamf
+    ACTION="$4"
+elif [ -n "$1" ] && [ "$1" != "/" ]; then
+    # Running via CLI (and $1 is not a mount point)
+    ACTION="$1"
+else
+    # Default to install if no parameter provided
+    ACTION="install"
+fi
+
 # Function to display usage
 usage() {
-    echo "Usage: $0 [install|uninstall]"
-    echo "  install   Install the JDK and STIG Viewer"
+    echo "Usage:"
+    echo "  CLI:  $0 [install|uninstall]"
+    echo "  Jamf: Pass 'install' or 'uninstall' as Parameter 4"
+    echo ""
+    echo "  install   Install the JDK and STIG Viewer (default if no action specified)"
     echo "  uninstall Uninstall the JDK and STIG Viewer"
     exit 1
 }
@@ -62,33 +89,28 @@ install_jdk() {
 
     # Install JDK
     echo "Installing JDK..."
-    sudo installer -pkg "$TEMP_DIR/$JDK_PKG" -target /
+    installer -pkg "$TEMP_DIR/$JDK_PKG" -target /
 
     # Clean up
     echo "Cleaning up..."
     rm -rf "$TEMP_DIR"
 
-    # Set JAVA_HOME and PATH
-    echo "Setting up environment variables..."
+    # Set JAVA_HOME and PATH for the current user
+    echo "Setting up environment variables for user: $CURRENT_USER..."
 
-    # Determine the shell and update the appropriate profile
-    if [ -n "$ZSH_VERSION" ]; then
-        PROFILE="$HOME/.zshrc"
-    elif [ -n "$BASH_VERSION" ]; then
-        PROFILE="$HOME/.bash_profile"
-    else
-        echo "Unsupported shell. Please set JAVA_HOME and PATH manually."
-        exit 1
+    # Update both .zshrc and .bash_profile for the logged-in user
+    JAVA_HOME=$(/usr/libexec/java_home 2>/dev/null)
+
+    if [ -n "$JAVA_HOME" ]; then
+        for PROFILE in "$CURRENT_USER_HOME/.zshrc" "$CURRENT_USER_HOME/.bash_profile"; do
+            # Only add if not already present
+            if ! grep -q "JAVA_HOME" "$PROFILE" 2>/dev/null; then
+                echo "export JAVA_HOME=\"$JAVA_HOME\"" >> "$PROFILE"
+                echo "export PATH=\"\$JAVA_HOME/bin:\$PATH\"" >> "$PROFILE"
+                chown "$CURRENT_USER" "$PROFILE"
+            fi
+        done
     fi
-
-    # Set JAVA_HOME and PATH
-    JAVA_HOME=$(/usr/libexec/java_home)
-    echo "export JAVA_HOME=\"$JAVA_HOME\"" >> "$PROFILE"
-    echo "export PATH=\"\$JAVA_HOME/bin:\$PATH\"" >> "$PROFILE"
-
-    # Source the updated profile
-    echo "Sourcing the updated profile..."
-    source "$PROFILE"
 
     # Verify installation
     echo "Verifying installations..."
@@ -112,11 +134,11 @@ install_stig_viewer() {
 
     # Create the destination directory if it does not exist
     echo "Creating destination directory..."
-    sudo mkdir -p "$STIG_VIEWER_DIR"
+    mkdir -p "$STIG_VIEWER_DIR"
 
     # Extract the ZIP file
     echo "Extracting STIG Viewer..."
-    sudo unzip -q "$TEMP_DIR/$STIG_VIEWER_ZIP" -d "$STIG_VIEWER_DIR"
+    unzip -q "$TEMP_DIR/$STIG_VIEWER_ZIP" -d "$STIG_VIEWER_DIR"
 
     # Create a minimal .app bundle
     echo "Creating application bundle..."
@@ -165,7 +187,7 @@ EOF
 
     # Copy the system icon to the application bundle
     echo "Copying system icon..."
-    sudo cp "$SYSTEM_ICON" "$STIG_VIEWER_APP/Contents/Resources/STIGViewerIcon.icns"
+    cp "$SYSTEM_ICON" "$STIG_VIEWER_APP/Contents/Resources/STIGViewerIcon.icns"
 
     # Clean up
     echo "Cleaning up..."
@@ -182,72 +204,43 @@ uninstall_jdk() {
     for JDK_DIR in /Library/Java/JavaVirtualMachines/liberica-jdk*.jdk; do
         if [ -d "$JDK_DIR" ]; then
             echo "Removing $JDK_DIR..."
-            sudo rm -rf "$JDK_DIR"
+            rm -rf "$JDK_DIR"
         fi
     done
 
-    # Remove JAVA_HOME and PATH from the profile
-    if [ -n "$ZSH_VERSION" ]; then
-        PROFILE="$HOME/.zshrc"
-    elif [ -n "$BASH_VERSION" ]; then
-        PROFILE="$HOME/.bash_profile"
-    else
-        echo "Unsupported shell. Please remove JAVA_HOME and PATH manually."
-        exit 1
-    fi
-
-    # Remove JAVA_HOME and PATH settings
-    sed -i '' '/JAVA_HOME/d' "$PROFILE"
-    sed -i '' '/PATH.*JAVA_HOME/d' "$PROFILE"
+    # Remove JAVA_HOME and PATH from the user's profile files
+    echo "Removing environment variables for user: $CURRENT_USER..."
+    for PROFILE in "$CURRENT_USER_HOME/.zshrc" "$CURRENT_USER_HOME/.bash_profile"; do
+        if [ -f "$PROFILE" ]; then
+            sed -i '' '/JAVA_HOME/d' "$PROFILE"
+            sed -i '' '/PATH.*JAVA_HOME/d' "$PROFILE"
+        fi
+    done
 
     # Remove STIG Viewer
     echo "Removing STIG Viewer..."
-    sudo rm -rf "$STIG_VIEWER_DIR"
-
-    # Source the updated profile
-    echo "Sourcing the updated profile..."
-    source "$PROFILE"
+    rm -rf "$STIG_VIEWER_DIR"
 
     echo "Uninstallation complete!"
 }
 
-# Function to prompt user for action
-prompt_user() {
-    echo "Do you want to install or uninstall the JDK and STIG Viewer?"
-    echo "1) Install"
-    echo "2) Uninstall"
-    read -p "Please enter your choice (1 or 2): " choice
-    case $choice in
-        1)
-            install_jdk
-            install_stig_viewer
-            ;;
-        2)
-            uninstall_jdk
-            ;;
-        *)
-            echo "Invalid choice."
-            usage
-            ;;
-    esac
-}
+# Main script logic - uses ACTION variable set earlier (supports both Jamf and CLI)
+echo "Running with action: $ACTION"
+echo "Current user detected: $CURRENT_USER"
+echo "User home directory: $CURRENT_USER_HOME"
 
-# Main script logic
-if [ "$#" -eq 1 ]; then
-    case "$1" in
-        install)
-            install_jdk
-            install_stig_viewer
-            ;;
-        uninstall)
-            uninstall_jdk
-            ;;
-        *)
-            usage
-            ;;
-    esac
-elif [ "$#" -eq 0 ]; then
-    prompt_user
-else
-    usage
-fi
+case "$ACTION" in
+    install)
+        install_jdk
+        install_stig_viewer
+        ;;
+    uninstall)
+        uninstall_jdk
+        ;;
+    *)
+        echo "Invalid action: $ACTION"
+        usage
+        ;;
+esac
+
+exit 0
