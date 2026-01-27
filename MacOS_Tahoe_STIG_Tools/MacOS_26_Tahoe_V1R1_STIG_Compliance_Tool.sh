@@ -21,6 +21,8 @@
 # - Fixed APPL-26-002037 Typo
 # Version 1.2 (01/15/2026)
 # - Fixed channeltimeout typo in complete_ssh_sshd_fix function
+# Version 1.3 (01/27/2026)
+# - Added Jamf compatibility by detecting and shifting past Jamf positional parameters
 ####################################################################################################
 # ==========================
 # Script Supported STIG Version
@@ -458,21 +460,22 @@ EOF
     exit 1
 }
 
+# Jamf passes 3 positional parameters ($1=mount point, $2=computer name, $3=username)
+# before any script parameters (starting at $4). Detect Jamf by checking if $1 is "/" or
+# a mount path and $# >= 3, then shift past the Jamf args so we can parse flags normally.
+if [ $# -ge 3 ] && [ "$1" = "/" ]; then
+    shift 3
+fi
+
 # Parse command-line options
 while [ $# -gt 0 ]; do
     case "$1" in
-        -c|--no-fix)
+        -c|--no-fix|-C)
             EXECUTE_FIX=false ;;    # Set EXECUTE_FIX to false if -c or --no-fix is passed
-        -C|--no-fix)
-            EXECUTE_FIX=false ;;    # Set EXECUTE_FIX to false if -C is passed
-        -f|--fix)
+        -f|--fix|-F)
             EXECUTE_FIX=true ;;     # Set EXECUTE_FIX to true if -f or --fix is passed
-        -F|--fix)
-            EXECUTE_FIX=true ;;     # Set EXECUTE_FIX to true if -F is passed
-        -h|--help)
+        -h|--help|-H)
             usage ;;                 # Display usage if -h is passed
-        -H|--help)
-            usage ;;                 # Display usage if -H is passed
         *)
             usage ;;                # Display usage if an invalid option is passed
     esac
