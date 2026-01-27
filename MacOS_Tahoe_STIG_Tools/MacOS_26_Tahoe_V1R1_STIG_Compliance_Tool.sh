@@ -460,16 +460,12 @@ EOF
     exit 1
 }
 
-# Jamf passes 3 positional parameters ($1=mount point, $2=computer name, $3=username)
-# before any script parameters (starting at $4). Detect Jamf by checking if $1 is "/" or
-# a mount path and $# >= 3, then shift past the Jamf args so we can parse flags normally.
-if [ $# -ge 3 ] && [ "$1" = "/" ]; then
-    shift 3
-fi
-
 # Parse command-line options
-while [ $# -gt 0 ]; do
-    case "$1" in
+# Jamf passes positional parameters ($1=mount point, $2=computer name, $3=username, $4-$11=policy params)
+# which may include empty strings. Non-flag arguments are silently ignored for Jamf compatibility.
+# When run manually, use -h to see usage or pass -c/-f as needed.
+for arg in "$@"; do
+    case "$arg" in
         -c|--no-fix|-C)
             EXECUTE_FIX=false ;;    # Set EXECUTE_FIX to false if -c or --no-fix is passed
         -f|--fix|-F)
@@ -477,9 +473,8 @@ while [ $# -gt 0 ]; do
         -h|--help|-H)
             usage ;;                 # Display usage if -h is passed
         *)
-            usage ;;                # Display usage if an invalid option is passed
+            ;;                       # Ignore unrecognized args (Jamf positional parameters)
     esac
-    shift  # Shift to the next argument
 done
 
 
